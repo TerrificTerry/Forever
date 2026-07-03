@@ -1,0 +1,14 @@
+node_modules
+.next
+.agents
+.codex
+.env
+.env.local
+uploads/*
+!uploads/.gitkeep
+postgres-data
+*.tsbuildinfo
+*.log
+.DS_Store
+backup*.sql
+*.tar.gz

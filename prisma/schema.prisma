@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum QuestionSource {
+  SELF
+  AI
+}
+
+enum StockAction {
+  BUY
+  SELL
+  WATCH
+  ADD
+  REDUCE
+}
+
+enum Prediction {
+  UP
+  DOWN
+  FLAT
+  UNKNOWN
+}
+
+enum AIRating {
+  GREEN
+  YELLOW
+  ORANGE
+  RED
+  BLUE
+}
+
+enum GameResult {
+  WIN
+  LOSS
+  DRAW
+  UNKNOWN
+}
+
+enum DataType {
+  TEXT
+  TXT
+  MARKDOWN
+  JSON
+  CSV
+  PDF
+  IMAGE
+  OTHER
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  diaryPasswordHash   String
+  privatePasswordHash String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  sessions            Session[]
+}
+
+model Session {
+  id                   String    @id @default(uuid())
+  tokenHash            String    @unique
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt            DateTime
+  diaryUnlockedUntil   DateTime?
+  privateUnlockedUntil DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Tag {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  color             String?
+  createdAt         DateTime           @default(now())
+  diaryEntries      DiaryEntry[]
+  dailyQuestions    DailyQuestion[]
+  appearanceRecords AppearanceRecord[]
+  stockTips         StockTip[]
+  gameReflections   GameReflection[]
+  dataFeedItems     DataFeedItem[]
+  aiMemoryItems     AIMemoryItem[]
+}
+
+model Attachment {
+  id             String             @id @default(uuid())
+  originalName   String
+  storedName     String             @unique
+  mimeType       String
+  sizeBytes      Int
+  storageProvider String            @default("local")
+  storagePath    String
+  createdAt      DateTime           @default(now())
+  diaryEntries   DiaryEntry[]
+  appearanceRecord AppearanceRecord?
+  dataFeedItem   DataFeedItem?
+}
+
+model DiaryEntry {
+  id          String       @id @default(uuid())
+  title       String
+  body        String
+  date        DateTime
+  location    String?
+  people      String[]
+  mood        String?
+  importance  Int?
+  aiSummary   String?
+  aiComment   String?
+  tags        Tag[]
+  attachments Attachment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  @@index([date])
+}
+
+model DailyQuestion {
+  id          String         @id @default(uuid())
+  question    String
+  source      QuestionSource @default(SELF)
+  answer      String?
+  aiFollowUp  String?
+  secondAnswer String?
+  aiSummary   String?
+  category    String?
+  date        DateTime
+  importance  Int?
+  tags        Tag[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  @@index([date])
+}
+
+model AppearanceRecord {
+  id                String     @id @default(uuid())
+  date              DateTime
+  photoAttachmentId String     @unique
+  photoAttachment   Attachment @relation(fields: [photoAttachmentId], references: [id])
+  note              String?
+  hairstyle         String?
+  outfit            String?
+  weight            Float?
+  context           String?
+  aiComment         String?
+  tags              Tag[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  @@index([date])
+}
+
+model StockRecord {
+  id                    String      @id @default(uuid())
+  date                  DateTime
+  ticker                String
+  companyName           String?
+  action                StockAction
+  price                 Float?
+  quantity              Float?
+  amount                Float?
+  reason                String
+  companyUnderstanding  String?
+  industryUnderstanding String?
+  riskFactors           String?
+  marketContext         String?
+  predictionEnabled     Boolean     @default(false)
+  predictionOneWeek     Prediction?
+  predictionOneMonth    Prediction?
+  predictionThreeMonths Prediction?
+  confidence            Int?
+  predictionReason      String?
+  aiRating              AIRating?
+  aiComment             String?
+  aiStrengths           String?
+  aiRisks               String?
+  aiWatchlist           String?
+  resultReflection      String?
+  manualChecks          StockManualCheck[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  @@index([ticker, date])
+}
+
+model StockManualCheck {
+  id            String      @id @default(uuid())
+  stockRecordId String
+  stockRecord   StockRecord @relation(fields: [stockRecordId], references: [id], onDelete: Cascade)
+  checkDate     DateTime
+  price         Float
+  note          String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  @@index([stockRecordId, checkDate])
+}
+
+model StockTip {
+  id             String   @id @default(uuid())
+  title          String
+  content        String
+  category       String?
+  scenario       String?
+  importance     Int?
+  example        String?
+  relatedTickers String[]
+  tags           Tag[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model GameReflection {
+  id             String     @id @default(uuid())
+  date           DateTime
+  gameName       String
+  hero           String?
+  role           String?
+  rank           String?
+  result         GameResult @default(UNKNOWN)
+  kills          Int?
+  deaths         Int?
+  assists        Int?
+  summary        String?
+  winningMove    String?
+  badMove        String?
+  deathReason    String?
+  tempoIssue     String?
+  teammateFactor String?
+  myProblem      String?
+  nextReminder   String?
+  aiSummary      String?
+  tags           Tag[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  @@index([date])
+}
+
+model DataFeedItem {
+  id                String      @id @default(uuid())
+  title             String
+  source            String?
+  dataType          DataType    @default(TEXT)
+  rawText           String?
+  extractedText     String?
+  attachmentId      String?     @unique
+  attachment        Attachment? @relation(fields: [attachmentId], references: [id])
+  date              DateTime?
+  tags              Tag[]
+  aiSummary         String?
+  aiKeyIdeas        String?
+  aiPeople          String?
+  aiEvents          String?
+  includeInAIMemory Boolean     @default(false)
+  parseError        String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  @@index([date])
+}
+
+model AIMemoryItem {
+  id             String   @id @default(uuid())
+  question       String
+  answer         String
+  sourcesUsed    String[]
+  dateRangeStart DateTime?
+  dateRangeEnd   DateTime?
+  tags           Tag[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AIReview {
+  id          String   @id @default(uuid())
+  module      String
+  reviewType  String
+  title       String
+  content     String
+  sourceIds   String[]
+  dateStart   DateTime?
+  dateEnd     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ExportJob {
+  id         String   @id @default(uuid())
+  module     String
+  format     String
+  filters    Json?
+  status     String   @default("COMPLETED")
+  fileName   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AppSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  isSensitive Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
