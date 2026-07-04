@@ -89,6 +89,20 @@ FINNHUB_API_KEY="your-key"
 
 If a service fails or a key is absent, records and manual later-price checks still work. The authenticated performance endpoint is `/api/stocks/{record-id}/performance`.
 
+## Secondary-password email recovery
+
+Changing a secondary password requires the current secondary password. For forgotten passwords, Spirit Archive can email a 15-minute, single-use reset link. The user must also be logged in with the main account before the link can be used.
+
+Create a Resend API key, verify a sending domain/address, and add only the real values to `.env`:
+
+```env
+RESEND_API_KEY="re_your_key"
+EMAIL_FROM="Spirit Archive <archive@your-verified-domain.com>"
+SECONDARY_RESET_MINUTES="15"
+```
+
+Restart the application after changing these values. The API key must remain blank in `.env.example` and must never be committed.
+
 ## Deploy to a VPS with HTTPS
 
 A small Linux VPS in Hong Kong, Singapore, Japan, or US West is a practical choice when access from China and overseas both matter. Provider routing still varies, so test the actual IP before committing long-term.

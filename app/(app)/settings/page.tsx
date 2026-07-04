@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { changePasswordAction, changeSecondaryAction } from "@/app/actions/auth";
+import { changePasswordAction, changeSecondaryAction, requestSecondaryResetAction } from "@/app/actions/auth";
 import { testAIAction, testStockAction } from "@/app/actions/settings";
 import { PageHeading } from "@/components/page-heading";
 import { Flash } from "@/components/flash";
@@ -14,6 +14,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const aiReady = !!process.env.OPENAI_API_KEY;
   const stockProvider = process.env.STOCK_API_PROVIDER || "manual";
   const stockReady = stockProvider === "manual" || !!(process.env.ALPHA_VANTAGE_API_KEY || process.env.FINNHUB_API_KEY || process.env.TWELVE_DATA_API_KEY);
+  const emailReady = !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
   return (
     <>
       <PageHeading eyebrow="Control room" title="Settings" description="Passwords can change here. Service keys stay in the server environment, where browser JavaScript cannot read them." actions={<Link className="button-secondary" href="/export">Export center</Link>} />
@@ -27,13 +28,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <PasswordCard title="Diary password" scope="diary" action={changeSecondaryAction} />
         <PasswordCard title="Private data password" scope="private" action={changeSecondaryAction} />
       </div>
-      <section className="card mt-8 p-5 sm:p-7"><div className="eyebrow">Environment health</div><h2 className="mt-2 font-serif text-2xl">Production checklist</h2><div className="mt-5 grid gap-3 text-sm sm:grid-cols-2"><Check ok={!!process.env.DATABASE_URL}>Database URL</Check><Check ok={!!process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= 24}>Long auth secret</Check><Check ok={!!process.env.SETUP_TOKEN}>Setup token</Check><Check ok={process.env.NODE_ENV === "production"}>Production mode</Check></div></section>
+      <section className="card mt-8 p-5 sm:p-7"><div className="eyebrow">Environment health</div><h2 className="mt-2 font-serif text-2xl">Production checklist</h2><div className="mt-5 grid gap-3 text-sm sm:grid-cols-2"><Check ok={!!process.env.DATABASE_URL}>Database URL</Check><Check ok={!!process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= 24}>Long auth secret</Check><Check ok={!!process.env.SETUP_TOKEN}>Setup token</Check><Check ok={emailReady}>Email recovery</Check><Check ok={process.env.NODE_ENV === "production"}>Production mode</Check></div></section>
     </>
   );
 }
 
 function PasswordCard({ title, scope, action }: { title: string; scope?: string; action: (formData: FormData) => Promise<void> }) {
-  return <section className="card p-5"><h2 className="font-serif text-xl">{title}</h2><form action={action} className="mt-5 space-y-4">{scope && <input type="hidden" name="scope" value={scope} />}<div><label className="field-label">Current main password</label><input className="field" type="password" name="currentPassword" required /></div><div><label className="field-label">New password</label><input className="field" type="password" name="newPassword" minLength={8} required /></div><SubmitButton className="button-secondary" pending="Updating…">Update</SubmitButton></form></section>;
+  return <section className="card p-5"><h2 className="font-serif text-xl">{title}</h2><form action={action} className="mt-5 space-y-4">{scope && <input type="hidden" name="scope" value={scope} />}<div><label className="field-label">{scope ? `Current ${scope === "diary" ? "Diary" : "Private data"} password` : "Current main password"}</label><input className="field" type="password" name={scope ? "currentSecondaryPassword" : "currentPassword"} required /></div><div><label className="field-label">New password</label><input className="field" type="password" name="newPassword" minLength={8} required /></div><SubmitButton className="button-secondary" pending="Updating…">Update</SubmitButton></form>{scope && <form action={requestSecondaryResetAction} className="mt-5 border-t border-line pt-4"><input type="hidden" name="scope" value={scope} /><p className="mb-3 text-xs leading-5 text-stone-500">Forgot it? Send a 15-minute, one-time reset link to the account email.</p><SubmitButton className="text-xs font-bold text-moss underline underline-offset-4" pending="Sending…">Email recovery link</SubmitButton></form>}</section>;
 }
 
 function Check({ ok, children }: { ok: boolean; children: React.ReactNode }) { return <div className="flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3"><span>{children}</span><span className={ok ? "text-emerald-700" : "text-amber-700"}>{ok ? "Ready" : "Review"}</span></div>; }

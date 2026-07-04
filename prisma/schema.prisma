@@ -53,6 +53,11 @@ enum DataType {
   OTHER
 }
 
+enum SecondaryScope {
+  DIARY
+  PRIVATE
+}
+
 model User {
   id                  String    @id @default(uuid())
   email               String    @unique
@@ -62,6 +67,7 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   sessions            Session[]
+  secondaryResetTokens SecondaryResetToken[]
 }
 
 model Session {
@@ -75,6 +81,20 @@ model Session {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   @@index([userId])
+  @@index([expiresAt])
+}
+
+model SecondaryResetToken {
+  id        String         @id @default(uuid())
+  tokenHash String         @unique
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope     SecondaryScope
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  @@index([userId, scope])
   @@index([expiresAt])
 }
 
