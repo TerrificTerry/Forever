@@ -108,9 +108,22 @@ Restart the application after changing these values. The API key must remain bla
 A small Linux VPS in Hong Kong, Singapore, Japan, or US West is a practical choice when access from China and overseas both matter. Provider routing still varies, so test the actual IP before committing long-term.
 
 1. Install Docker Engine and the Compose plugin.
-2. Point an A/AAAA DNS record for your domain to the VPS.
-3. Clone/copy this project and create a production `.env`.
-4. Set:
+2. On a small VPS, create a 2 GB swap file so a temporary memory spike during image builds or application startup is less likely to trigger the OOM killer. Run these commands once:
+
+   ```bash
+   sudo fallocate -l 2G /swapfile
+   sudo chmod 600 /swapfile
+   sudo mkswap /swapfile
+   sudo swapon /swapfile
+   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+   swapon --show
+   ```
+
+   Swap is an emergency buffer, not a replacement for sufficient RAM. Do not repeat the `tee -a` command after the entry has been added to `/etc/fstab`.
+
+3. Point an A/AAAA DNS record for your domain to the VPS.
+4. Clone/copy this project and create a production `.env`.
+5. Set:
 
    ```env
    NODE_ENV="production"
@@ -118,8 +131,8 @@ A small Linux VPS in Hong Kong, Singapore, Japan, or US West is a practical choi
    DOMAIN="archive.example.com"
    ```
 
-5. Allow inbound TCP 80/443 and UDP 443 in the VPS firewall.
-6. Start the app, database, and Caddy profile:
+6. Allow inbound TCP 80/443 and UDP 443 in the VPS firewall.
+7. Start the app, database, and Caddy profile:
 
    ```bash
    docker compose --profile production up --build -d
