@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeading } from "@/components/page-heading";
 import { Flash } from "@/components/flash";
+import { SubmitButton } from "@/components/submit-button";
+import { toggleTaskAction } from "@/app/actions/modules";
 import { hasSecondaryAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate, truncate } from "@/lib/utils";
@@ -12,7 +14,8 @@ type Snapshot = { title: string; preview: string | null; date: Date; href: strin
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
   const query = await searchParams;
   const [diaryOpen, privateOpen] = await Promise.all([hasSecondaryAccess("diary"), hasSecondaryAccess("private")]);
-  const [diary, question, appearance, stock, tip, game, data, ai] = await Promise.all([
+  const [tasks, diary, question, appearance, stock, tip, game, data, ai] = await Promise.all([
+    prisma.task.findMany({ where: { status: { not: "DONE" } }, include: { tags: true }, orderBy: [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }], take: 8 }),
     diaryOpen ? prisma.diaryEntry.findFirst({ orderBy: { date: "desc" } }) : null,
     prisma.dailyQuestion.findFirst({ orderBy: { date: "desc" } }),
     prisma.appearanceRecord.findFirst({ orderBy: { date: "desc" } }),
@@ -36,8 +39,30 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   return (
     <>
-      <PageHeading eyebrow={formatDate(new Date())} title={greeting} description="A quiet overview of what you have been thinking, choosing, noticing, and learning." actions={<Link href="/game/quick-add" className="button">Quick game note</Link>} />
+      <PageHeading eyebrow={formatDate(new Date())} title={greeting} description="A quiet overview of what you have been thinking, choosing, noticing, and learning." actions={<><Link href="/game/quick-add" className="button-secondary">Quick game note</Link><Link href="/tasks/new" className="button">New task</Link></>} />
       <Flash notice={query.notice} />
+      <section className="card mb-8 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-moss-soft/40 px-5 py-4 sm:px-6">
+          <div><div className="eyebrow">First things first</div><h2 className="mt-1 font-serif text-2xl">Tasks</h2></div>
+          <div className="flex items-center gap-3"><Link className="text-xs font-bold text-moss" href="/tasks">View all</Link><Link className="button-secondary min-h-9 px-4 text-xs" href="/tasks/new">Add task</Link></div>
+        </div>
+        {tasks.length ? <div className="divide-y divide-line">
+          {tasks.map((task) => (
+            <div key={task.id} className="flex items-start gap-3 px-5 py-4 sm:px-6">
+              <form action={toggleTaskAction.bind(null, task.id)}><SubmitButton className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-xs text-moss hover:border-moss" pending="...">✓</SubmitButton></form>
+              <div className="min-w-0 flex-1">
+                <Link className="font-bold leading-6 hover:text-moss" href={`/tasks/${task.id}`}>{task.title}</Link>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-stone-500">
+                  {task.listName && <span>{task.listName}</span>}
+                  {task.dueDate && <span>Due {formatDate(task.dueDate)}</span>}
+                  {task.priority && <span>Priority {task.priority}/5</span>}
+                  {task.status === "IN_PROGRESS" && <span className="font-bold text-moss">In progress</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div> : <div className="px-5 py-8 text-center sm:px-6"><p className="text-sm text-stone-500">Nothing waiting. Enjoy the suspicious calm.</p><Link className="mt-3 inline-block text-sm font-bold text-moss" href="/tasks/new">Add your first task</Link></div>}
+      </section>
       <div className="grid gap-4 md:grid-cols-2">
         {snapshots.map((item) => (
           <section key={item.label} className="card flex min-h-56 flex-col p-5 sm:p-6">

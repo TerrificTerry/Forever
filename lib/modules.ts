@@ -29,10 +29,24 @@ export type ModuleConfig = {
 const tags: ModuleField = { name: "tags", label: "Tags", type: "tags", placeholder: "reflection, growth, work", wide: true };
 
 export const modules: Record<string, ModuleConfig> = {
+  tasks: {
+    slug: "tasks", singular: "Task", title: "Tasks", eyebrow: "What comes next",
+    description: "Keep the next useful actions visible without letting them take over the rest of your archive.",
+    newLabel: "New task",
+    fields: [
+      { name: "title", label: "Task", type: "text", required: true, placeholder: "What needs to be done?", wide: true },
+      { name: "listName", label: "List", type: "text", placeholder: "Personal, work, errands..." },
+      { name: "dueDate", label: "Due date", type: "date" },
+      { name: "priority", label: "Priority", type: "select", options: ["1", "2", "3", "4", "5"], help: "5 is the highest priority." },
+      { name: "status", label: "Status", type: "select", required: true, options: ["TODO", "IN_PROGRESS", "DONE"] },
+      tags,
+      { name: "details", label: "Notes", type: "textarea", placeholder: "Context, links, or the next concrete step.", wide: true },
+    ],
+  },
   diary: {
     slug: "diary", singular: "Diary entry", title: "Diary", eyebrow: "Private reflection",
     description: "A quiet record of events, people, feelings, and the details your future self may want back.",
-    newLabel: "New diary", secondary: "diary", aiLabel: "AI comment",
+    newLabel: "New diary", secondary: "diary", aiLabel: "AI evaluate",
     fields: [
       { name: "title", label: "Title", type: "text", required: true, placeholder: "What should this day be called?", wide: true },
       { name: "date", label: "Date", type: "date", required: true },
@@ -159,7 +173,7 @@ export function getModule(slug: string) {
 }
 
 export const navigation = [
-  ["/home", "Home"], ["/diary", "Diary"], ["/questions", "Daily Questions"],
+  ["/home", "Home"], ["/tasks", "Tasks"], ["/diary", "Diary"], ["/questions", "Daily Questions"],
   ["/appearance", "Appearance"], ["/stocks", "Stocks"], ["/stock-tips", "Stock Tips"],
   ["/game", "Game Reflection"], ["/data-feed", "Data Feed"], ["/my-ai", "My AI"],
   ["/settings", "Settings"],

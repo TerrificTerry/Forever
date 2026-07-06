@@ -46,6 +46,14 @@ export async function commentDiaryEntry(entry: { title: string; body: string; mo
   });
 }
 
+export async function summarizeDiaryEntry(entry: { title: string; body: string; mood?: string | null; location?: string | null; people?: string[]; date: Date }) {
+  return aiClient.generate({
+    systemPrompt: `You summarize one private diary entry. ${evidenceRule} Preserve concrete details and the writer's uncertainty. Be concise and do not evaluate or advise.`,
+    userPrompt: `Summarize this entry under three short headings: What happened, Inner state, Details worth remembering.\n\n${JSON.stringify(entry)}`,
+    maxTokens: 700,
+  });
+}
+
 export async function summarizeDiaryRange(entries: unknown[], style: string) {
   return aiClient.generate({
     systemPrompt: `You summarize a private diary. ${evidenceRule} Preserve concrete details worth remembering.`,

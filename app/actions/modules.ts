@@ -8,7 +8,7 @@ import { getModuleRecord } from "@/lib/module-data";
 import { hasSecondaryAccess, requireSecondary, requireUser } from "@/lib/auth";
 import { asDate, csv, optionalNumber, optionalString } from "@/lib/utils";
 import { dataTypeFor, extractReadableText, storeUpload } from "@/lib/uploads";
-import { aiClient, commentDiaryEntry, evaluateStockDecision, followUpQuestion, summarizeDataItem, summarizeDiaryRange, summarizeGameStyle, summarizeQuestion } from "@/lib/ai";
+import { aiClient, commentDiaryEntry, evaluateStockDecision, followUpQuestion, summarizeDataItem, summarizeDiaryEntry, summarizeDiaryRange, summarizeGameStyle, summarizeQuestion } from "@/lib/ai";
 
 function required(formData: FormData, name: string) {
   const value = optionalString(formData.get(name));
@@ -44,6 +44,17 @@ export async function saveModuleAction(slug: string, id: string | null, formData
   const update = !!id;
   try {
     switch (slug) {
+      case "tasks": {
+        const status = String(formData.get("status") || "TODO") as "TODO" | "IN_PROGRESS" | "DONE";
+        const dueDateValue = optionalString(formData.get("dueDate"));
+        const data = {
+          title: required(formData, "title"), details: optionalString(formData.get("details")), listName: optionalString(formData.get("listName")),
+          dueDate: dueDateValue ? asDate(formData.get("dueDate")) : null, priority: optionalNumber(formData.get("priority")), status,
+          completedAt: status === "DONE" ? new Date() : null, tags: tags(formData, update),
+        };
+        id ? await prisma.task.update({ where: { id }, data }) : await prisma.task.create({ data });
+        break;
+      }
       case "diary": {
         const data = {
           title: required(formData, "title"), body: required(formData, "body"), date: asDate(formData.get("date")),
@@ -147,12 +158,14 @@ export async function saveModuleAction(slug: string, id: string | null, formData
     actionError(destination, error);
   }
   revalidatePath(`/${slug}`);
+  if (slug === "tasks") revalidatePath("/home");
   redirect(`/${slug}?notice=${encodeURIComponent(`${getModule(slug)!.singular} saved.`)}`);
 }
 
 export async function deleteModuleAction(slug: string, id: string) {
   await authorizeModule(slug, `/${slug}/${id}`);
   switch (slug) {
+    case "tasks": await prisma.task.delete({ where: { id } }); break;
     case "diary": await prisma.diaryEntry.delete({ where: { id } }); break;
     case "questions": await prisma.dailyQuestion.delete({ where: { id } }); break;
     case "appearance": await prisma.appearanceRecord.delete({ where: { id } }); break;
@@ -163,7 +176,19 @@ export async function deleteModuleAction(slug: string, id: string) {
     default: throw new Error("Unknown module.");
   }
   revalidatePath(`/${slug}`);
+  if (slug === "tasks") revalidatePath("/home");
   redirect(`/${slug}?notice=Record%20deleted`);
+}
+
+export async function toggleTaskAction(id: string) {
+  await requireUser();
+  const task = await prisma.task.findUnique({ where: { id }, select: { status: true } });
+  if (!task) return;
+  const done = task.status !== "DONE";
+  await prisma.task.update({ where: { id }, data: { status: done ? "DONE" : "TODO", completedAt: done ? new Date() : null } });
+  revalidatePath("/home");
+  revalidatePath("/tasks");
+  revalidatePath(`/tasks/${id}`);
 }
 
 export async function runRecordAIAction(slug: string, id: string) {
@@ -201,6 +226,19 @@ export async function runRecordAIAction(slug: string, id: string) {
   }
   revalidatePath(`/${slug}/${id}`);
   redirect(`/${slug}/${id}?notice=AI%20review%20saved`);
+}
+
+export async function summarizeDiaryEntryAction(id: string) {
+  await authorizeModule("diary", `/diary/${id}`);
+  const record = await getModuleRecord("diary", id);
+  if (!record) throw new Error("Diary entry not found.");
+  try {
+    await prisma.diaryEntry.update({ where: { id }, data: { aiSummary: await summarizeDiaryEntry(record) } });
+  } catch (error) {
+    actionError(`/diary/${id}`, error);
+  }
+  revalidatePath(`/diary/${id}`);
+  redirect(`/diary/${id}?notice=AI%20summary%20saved`);
 }
 
 export async function diaryRangeSummaryAction(formData: FormData) {

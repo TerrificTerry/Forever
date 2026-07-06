@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     `# ${entry.title}`, "", `**Date:** ${entry.date.toISOString().slice(0, 10)}`,
     entry.mood ? `**Mood:** ${entry.mood}` : "", entry.location ? `**Location:** ${entry.location}` : "",
     entry.people.length ? `**People:** ${entry.people.join(", ")}` : "", entry.tags.length ? `**Tags:** ${entry.tags.map((tag) => `#${tag.name}`).join(" ")}` : "",
-    "", entry.body, entry.aiComment ? `\n## AI comment\n\n${entry.aiComment}` : "",
+    "", entry.body, entry.aiSummary ? `\n## AI summary\n\n${entry.aiSummary}` : "", entry.aiComment ? `\n## AI evaluation\n\n${entry.aiComment}` : "",
   ].filter(Boolean).join("\n")).join("\n\n---\n\n");
   await prisma.exportJob.create({ data: { module: "diary", format, fileName, filters: { id, start, end } } });
   return new Response(body, { headers: { "Content-Type": format === "json" ? "application/json; charset=utf-8" : "text/markdown; charset=utf-8", "Content-Disposition": `attachment; filename="${fileName}"`, "Cache-Control": "private, no-store" } });

@@ -4,7 +4,7 @@ import { dateInputValue } from "@/lib/utils";
 import { SubmitButton } from "@/components/submit-button";
 
 function initialValue(record: any, field: ModuleField) {
-  if (!record) return field.type === "date" ? dateInputValue() : "";
+  if (!record) return field.type === "date" && field.required ? dateInputValue() : "";
   const value = record[field.name];
   if (field.type === "date") return dateInputValue(value);
   if (field.type === "tags") return (record.tags || []).map((tag: { name: string }) => tag.name).join(", ");

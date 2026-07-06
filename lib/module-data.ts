@@ -15,6 +15,10 @@ export type ModuleRow = {
 export async function listModuleRecords(slug: string, search = "") {
   const contains = search ? { contains: search, mode: "insensitive" as const } : undefined;
   switch (slug) {
+    case "tasks": return prisma.task.findMany({
+      where: contains ? { OR: [{ title: contains }, { details: contains }, { listName: contains }, { tags: { some: { name: contains } } }] } : undefined,
+      include: { tags: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }], take: 100,
+    });
     case "diary": return prisma.diaryEntry.findMany({
       where: contains ? { OR: [{ title: contains }, { body: contains }, { mood: contains }, { location: contains }, { tags: { some: { name: contains } } }] } : undefined,
       include: { tags: true }, orderBy: { date: "desc" }, take: 100,
@@ -51,6 +55,7 @@ export function normalizeRows(slug: string, records: any[]): ModuleRow[] {
   return records.map((record) => {
     const common = { id: record.id, date: record.date || record.createdAt, tags: record.tags || [] };
     switch (slug) {
+      case "tasks": return { ...common, date: record.dueDate || record.createdAt, title: record.title, preview: record.details, badge: record.status.replaceAll("_", " "), meta: [record.listName, record.priority ? `Priority ${record.priority}/5` : null].filter(Boolean).join(" · ") || null };
       case "diary": return { ...common, title: record.title, preview: record.body, badge: record.mood, meta: record.importance ? `Importance ${record.importance}/5` : null };
       case "questions": return { ...common, title: record.question, preview: record.answer, badge: record.source, meta: record.category };
       case "appearance": return { ...common, title: record.context || "Appearance record", preview: record.note, badge: record.hairstyle, meta: record.outfit, imageId: record.photoAttachmentId };
@@ -65,6 +70,7 @@ export function normalizeRows(slug: string, records: any[]): ModuleRow[] {
 
 export async function getModuleRecord(slug: string, id: string): Promise<any | null> {
   switch (slug) {
+    case "tasks": return prisma.task.findUnique({ where: { id }, include: { tags: true } });
     case "diary": return prisma.diaryEntry.findUnique({ where: { id }, include: { tags: true, attachments: true } });
     case "questions": return prisma.dailyQuestion.findUnique({ where: { id }, include: { tags: true } });
     case "appearance": return prisma.appearanceRecord.findUnique({ where: { id }, include: { tags: true, photoAttachment: true } });
@@ -78,6 +84,7 @@ export async function getModuleRecord(slug: string, id: string): Promise<any | n
 
 export async function moduleCount(slug: string) {
   switch (slug) {
+    case "tasks": return prisma.task.count();
     case "diary": return prisma.diaryEntry.count();
     case "questions": return prisma.dailyQuestion.count();
     case "appearance": return prisma.appearanceRecord.count();

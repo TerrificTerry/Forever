@@ -58,15 +58,21 @@ enum SecondaryScope {
   PRIVATE
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
 model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
-  passwordHash        String
-  diaryPasswordHash   String
-  privatePasswordHash String
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  sessions            Session[]
+  id                   String                @id @default(uuid())
+  email                String                @unique
+  passwordHash         String
+  diaryPasswordHash    String
+  privatePasswordHash  String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  sessions             Session[]
   secondaryResetTokens SecondaryResetToken[]
 }
 
@@ -80,6 +86,7 @@ model Session {
   privateUnlockedUntil DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+
   @@index([userId])
   @@index([expiresAt])
 }
@@ -110,20 +117,21 @@ model Tag {
   gameReflections   GameReflection[]
   dataFeedItems     DataFeedItem[]
   aiMemoryItems     AIMemoryItem[]
+  tasks             Task[]
 }
 
 model Attachment {
-  id             String             @id @default(uuid())
-  originalName   String
-  storedName     String             @unique
-  mimeType       String
-  sizeBytes      Int
-  storageProvider String            @default("local")
-  storagePath    String
-  createdAt      DateTime           @default(now())
-  diaryEntries   DiaryEntry[]
+  id               String            @id @default(uuid())
+  originalName     String
+  storedName       String            @unique
+  mimeType         String
+  sizeBytes        Int
+  storageProvider  String            @default("local")
+  storagePath      String
+  createdAt        DateTime          @default(now())
+  diaryEntries     DiaryEntry[]
   appearanceRecord AppearanceRecord?
-  dataFeedItem   DataFeedItem?
+  dataFeedItem     DataFeedItem?
 }
 
 model DiaryEntry {
@@ -141,23 +149,41 @@ model DiaryEntry {
   attachments Attachment[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
   @@index([date])
 }
 
-model DailyQuestion {
-  id          String         @id @default(uuid())
-  question    String
-  source      QuestionSource @default(SELF)
-  answer      String?
-  aiFollowUp  String?
-  secondAnswer String?
-  aiSummary   String?
-  category    String?
-  date        DateTime
-  importance  Int?
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  details     String?
+  listName    String?
+  dueDate     DateTime?
+  priority    Int?
+  status      TaskStatus @default(TODO)
+  completedAt DateTime?
   tags        Tag[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, dueDate])
+}
+
+model DailyQuestion {
+  id           String         @id @default(uuid())
+  question     String
+  source       QuestionSource @default(SELF)
+  answer       String?
+  aiFollowUp   String?
+  secondAnswer String?
+  aiSummary    String?
+  category     String?
+  date         DateTime
+  importance   Int?
+  tags         Tag[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
   @@index([date])
 }
 
@@ -175,11 +201,12 @@ model AppearanceRecord {
   tags              Tag[]
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+
   @@index([date])
 }
 
 model StockRecord {
-  id                    String      @id @default(uuid())
+  id                    String             @id @default(uuid())
   date                  DateTime
   ticker                String
   companyName           String?
@@ -192,7 +219,7 @@ model StockRecord {
   industryUnderstanding String?
   riskFactors           String?
   marketContext         String?
-  predictionEnabled     Boolean     @default(false)
+  predictionEnabled     Boolean            @default(false)
   predictionOneWeek     Prediction?
   predictionOneMonth    Prediction?
   predictionThreeMonths Prediction?
@@ -205,8 +232,9 @@ model StockRecord {
   aiWatchlist           String?
   resultReflection      String?
   manualChecks          StockManualCheck[]
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
   @@index([ticker, date])
 }
 
@@ -219,6 +247,7 @@ model StockManualCheck {
   note          String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
   @@index([stockRecordId, checkDate])
 }
 
@@ -259,6 +288,7 @@ model GameReflection {
   tags           Tag[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+
   @@index([date])
 }
 
@@ -281,43 +311,44 @@ model DataFeedItem {
   parseError        String?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
+
   @@index([date])
 }
 
 model AIMemoryItem {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   question       String
   answer         String
   sourcesUsed    String[]
   dateRangeStart DateTime?
   dateRangeEnd   DateTime?
   tags           Tag[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model AIReview {
-  id          String   @id @default(uuid())
-  module      String
-  reviewType  String
-  title       String
-  content     String
-  sourceIds   String[]
-  dateStart   DateTime?
-  dateEnd     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(uuid())
+  module     String
+  reviewType String
+  title      String
+  content    String
+  sourceIds  String[]
+  dateStart  DateTime?
+  dateEnd    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model ExportJob {
-  id         String   @id @default(uuid())
-  module     String
-  format     String
-  filters    Json?
-  status     String   @default("COMPLETED")
-  fileName   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  module    String
+  format    String
+  filters   Json?
+  status    String   @default("COMPLETED")
+  fileName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AppSetting {

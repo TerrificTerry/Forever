@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteModuleAction, runRecordAIAction, addManualCheckAction } from "@/app/actions/modules";
+import { deleteModuleAction, runRecordAIAction, addManualCheckAction, summarizeDiaryEntryAction, toggleTaskAction } from "@/app/actions/modules";
 import { getModule } from "@/lib/modules";
 import { getModuleRecord, normalizeRows } from "@/lib/module-data";
 import { requireSecondary } from "@/lib/auth";
@@ -22,7 +22,7 @@ function valueFor(record: any, name: string) {
 }
 
 function AIResults({ slug, record }: { slug: string; record: any }) {
-  const sections: Array<[string, string | null | undefined]> = slug === "diary" ? [["AI comment", record.aiComment], ["AI summary", record.aiSummary]]
+  const sections: Array<[string, string | null | undefined]> = slug === "diary" ? [["AI summary", record.aiSummary], ["AI evaluation", record.aiComment]]
     : slug === "questions" ? [["AI follow-up", record.aiFollowUp], ["Answer summary", record.aiSummary]]
     : slug === "appearance" ? [["AI observation", record.aiComment]]
     : slug === "stocks" ? [["Conclusion", record.aiComment], ["Reasonable points", record.aiStrengths], ["Risks", record.aiRisks], ["Watch next", record.aiWatchlist]]
@@ -70,11 +70,19 @@ export default async function ModuleDetailPage({ params, searchParams }: { param
   const query = await searchParams;
   const row = normalizeRows(slug, [record])[0];
   const aiAction = config.aiLabel ? runRecordAIAction.bind(null, slug, id) : null;
+  const diarySummaryAction = slug === "diary" ? summarizeDiaryEntryAction.bind(null, id) : null;
+  const taskToggleAction = slug === "tasks" ? toggleTaskAction.bind(null, id) : null;
   const deleteAction = deleteModuleAction.bind(null, slug, id);
   return (
     <>
       <PageHeading eyebrow={`${config.singular} · ${formatDate(row.date)}`} title={truncate(row.title, 70)} description={row.meta || config.description} actions={
-        <><Link className="button-secondary" href={`/${slug}`}>Back</Link>{slug === "diary" && <a className="button-secondary" href={`/api/diary/export?format=markdown&id=${id}`}>Export</a>}{aiAction && <form action={aiAction}><SubmitButton pending="Asking AI…">{config.aiLabel}</SubmitButton></form>}</>
+        <>
+          <Link className="button-secondary" href={`/${slug}`}>Back</Link>
+          {slug === "diary" && <a className="button-secondary" href={`/api/diary/export?format=markdown&id=${id}`}>Export</a>}
+          {taskToggleAction && <form action={taskToggleAction}><SubmitButton className="button-secondary" pending="Updating...">{record.status === "DONE" ? "Reopen" : "Mark done"}</SubmitButton></form>}
+          {diarySummaryAction && <form action={diarySummaryAction}><SubmitButton className="button-secondary" pending="Summarizing...">AI summarize</SubmitButton></form>}
+          {aiAction && <form action={aiAction}><SubmitButton pending="Asking AI...">{config.aiLabel}</SubmitButton></form>}
+        </>
       } />
       <Flash error={query.error} notice={query.notice} />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
