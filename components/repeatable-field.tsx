@@ -66,6 +66,15 @@ export function RepeatableField({ name, label, initialItems, itemLabel, addLabel
                       placeholder={field.placeholder}
                       onChange={(event) => updateItem(index, field.name, event.target.value)}
                     />
+                  ) : field.type === "select" ? (
+                    <select
+                      id={`${name}-${index}-${field.name}`}
+                      className="field"
+                      value={item[field.name] || field.defaultValue || field.options?.[0] || ""}
+                      onChange={(event) => updateItem(index, field.name, event.target.value)}
+                    >
+                      {field.options?.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
                   ) : (
                     <input
                       id={`${name}-${index}-${field.name}`}

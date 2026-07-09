@@ -35,6 +35,7 @@ export type ModuleConfig = {
 };
 
 const tags: ModuleField = { name: "tags", label: "Tags", type: "tags", placeholder: "reflection, growth, work", wide: true };
+const codeLanguageOptions = ["python", "java", "c", "cpp", "javascript", "typescript", "go", "text"];
 
 export const modules: Record<string, ModuleConfig> = {
   tasks: {
@@ -73,6 +74,7 @@ export const modules: Record<string, ModuleConfig> = {
             { name: "name", label: "Name", placeholder: "Brute force / Memoized DFS / Bottom-up DP" },
             { name: "complexity", label: "Complexity", placeholder: "Time O(n), space O(n)" },
             { name: "approach", label: "Approach", type: "textarea", placeholder: "Core idea, invariant, why it works.", wide: true },
+            { name: "language", label: "Language", type: "select", options: codeLanguageOptions, defaultValue: "python" },
             { name: "code", label: "Code", type: "textarea", placeholder: "Paste the key implementation or pseudocode.", wide: true },
             { name: "reflection", label: "Reflection", type: "textarea", placeholder: "What did you miss? What signal should remind you of this pattern?", wide: true },
             { name: "notes", label: "Annotations", type: "textarea", placeholder: "Edge cases, variants, proof notes, follow-ups.", wide: true },
@@ -100,6 +102,7 @@ export const modules: Record<string, ModuleConfig> = {
           fields: [
             { name: "name", label: "Name", placeholder: "First attempt / STAR version / Optimized solution" },
             { name: "answer", label: "Answer", type: "textarea", placeholder: "Your spoken answer, solution outline, or implementation.", wide: true },
+            { name: "language", label: "Language", type: "select", options: codeLanguageOptions, defaultValue: "text" },
             { name: "code", label: "Code or structure", type: "textarea", placeholder: "Optional code, system design outline, or bullet structure.", wide: true },
             { name: "reflection", label: "Reflection", type: "textarea", placeholder: "What was strong, unclear, missing, or too slow?", wide: true },
             { name: "notes", label: "Annotations", type: "textarea", placeholder: "Follow-ups, edge cases, recruiter signals, examples to reuse.", wide: true },

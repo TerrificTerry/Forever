@@ -2,13 +2,15 @@ export type RepeatableItem = Record<string, string>;
 export type RepeatableSubField = {
   name: string;
   label: string;
-  type?: "text" | "textarea";
+  type?: "text" | "textarea" | "select";
+  options?: string[];
+  defaultValue?: string;
   placeholder?: string;
   wide?: boolean;
 };
 
 export function emptyRepeatableItem(fields: RepeatableSubField[]) {
-  return Object.fromEntries(fields.map((field) => [field.name, ""]));
+  return Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""]));
 }
 
 export function normalizeRepeatableItems(value: unknown, fields?: RepeatableSubField[]) {
@@ -21,11 +23,10 @@ export function normalizeRepeatableItems(value: unknown, fields?: RepeatableSubF
     }
   }
   if (!Array.isArray(raw)) return fields ? [emptyRepeatableItem(fields)] : [];
-  const fieldNames = fields?.map((field) => field.name);
   const items = raw
     .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
     .map((item) => {
-      const entries = fieldNames?.length ? fieldNames.map((name) => [name, item[name]]) : Object.entries(item);
+      const entries = fields?.length ? fields.map((field) => [field.name, item[field.name] ?? field.defaultValue ?? ""]) : Object.entries(item);
       return Object.fromEntries(entries.map(([key, itemValue]) => [key, typeof itemValue === "string" ? itemValue : itemValue == null ? "" : String(itemValue)])) as RepeatableItem;
     })
     .filter((item) => Object.values(item).some((itemValue) => itemValue.trim()));
@@ -35,5 +36,5 @@ export function normalizeRepeatableItems(value: unknown, fields?: RepeatableSubF
 export function compactRepeatableItems(value: unknown) {
   return normalizeRepeatableItems(value)
     .map((item) => Object.fromEntries(Object.entries(item).map(([key, itemValue]) => [key, itemValue.trim()])))
-    .filter((item) => Object.values(item).some(Boolean));
+    .filter((item) => Object.entries(item).some(([key, itemValue]) => key !== "language" && Boolean(itemValue)));
 }

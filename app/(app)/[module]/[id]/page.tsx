@@ -13,6 +13,7 @@ import { Flash } from "@/components/flash";
 import { SubmitButton } from "@/components/submit-button";
 import { DeleteButton } from "@/components/delete-button";
 import { StockPerformance } from "@/components/stock-performance";
+import { CodeBlock } from "@/components/code-block";
 
 function valueFor(record: any, name: string) {
   const value = record[name];
@@ -57,11 +58,11 @@ function RepeatableDisplay({ field, value }: { field: ModuleField; value: unknow
           <section key={index} className="rounded-2xl border border-line bg-[#fcfbf8] p-4">
             <h3 className="mb-4 text-sm font-bold">{field.repeatable!.itemLabel} {index + 1}{item.name ? ` · ${item.name}` : ""}</h3>
             <div className="space-y-4">
-              {field.repeatable!.fields.filter((subfield) => subfield.name !== "name" && item[subfield.name]).map((subfield) => (
+              {field.repeatable!.fields.filter((subfield) => !["name", "language"].includes(subfield.name) && item[subfield.name]).map((subfield) => (
                 <div key={subfield.name}>
                   <div className="field-label">{subfield.label}</div>
                   {subfield.name === "code" ? (
-                    <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-xl bg-ink px-4 py-3 text-xs leading-6 text-stone-100">{item[subfield.name]}</pre>
+                    <CodeBlock code={item[subfield.name]} language={item.language} />
                   ) : (
                     <div className="prose-private mt-1 whitespace-pre-wrap">{item[subfield.name]}</div>
                   )}
