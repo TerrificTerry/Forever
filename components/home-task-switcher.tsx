@@ -16,6 +16,7 @@ type HomeTask = {
 };
 
 const TODO_STORAGE_KEY = "forever-home-today-board";
+const MODE_STORAGE_KEY = "forever-home-task-mode";
 
 export function HomeTaskSwitcher({ tasks, taskCount }: { tasks: HomeTask[]; taskCount: number }) {
   const [mode, setMode] = useState<"tasks" | "board">("tasks");
@@ -24,13 +25,16 @@ export function HomeTaskSwitcher({ tasks, taskCount }: { tasks: HomeTask[]; task
 
   useEffect(() => {
     setBoardText(localStorage.getItem(TODO_STORAGE_KEY) || "");
+    const savedMode = localStorage.getItem(MODE_STORAGE_KEY);
+    if (savedMode === "tasks" || savedMode === "board") setMode(savedMode);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(TODO_STORAGE_KEY, boardText);
-  }, [boardText, hydrated]);
+    localStorage.setItem(MODE_STORAGE_KEY, mode);
+  }, [boardText, hydrated, mode]);
 
   const lineCount = boardText.trim() ? boardText.trim().split(/\n+/).filter(Boolean).length : 0;
 
@@ -62,7 +66,7 @@ export function HomeTaskSwitcher({ tasks, taskCount }: { tasks: HomeTask[]; task
             {tasks.map((task) => (
               <div key={task.id} className="flex items-start gap-3 px-5 py-4 sm:px-6">
                 <form action={toggleTaskAction.bind(null, task.id)}>
-                  <SubmitButton className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-xs text-moss hover:border-moss" pending="...">✓</SubmitButton>
+                  <SubmitButton aria-label={`Mark ${task.title} done`} title="Mark done" className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-xs text-moss hover:border-moss" pending="...">✓</SubmitButton>
                 </form>
                 <div className="min-w-0 flex-1">
                   <Link className="font-bold leading-6 hover:text-moss" href={`/tasks/${task.id}`}>{task.title}</Link>

@@ -5,6 +5,8 @@ import { getModule } from "@/lib/modules";
 import { getModuleRecord, normalizeRows } from "@/lib/module-data";
 import { requireSecondary } from "@/lib/auth";
 import { formatDate, truncate } from "@/lib/utils";
+import { normalizeRepeatableItems } from "@/lib/repeatable";
+import type { ModuleField } from "@/lib/modules";
 import { PageHeading } from "@/components/page-heading";
 import { ModuleForm } from "@/components/module-form";
 import { Flash } from "@/components/flash";
@@ -23,6 +25,8 @@ function valueFor(record: any, name: string) {
 
 function AIResults({ slug, record }: { slug: string; record: any }) {
   const sections: Array<[string, string | null | undefined]> = slug === "diary" ? [["AI summary", record.aiSummary], ["AI evaluation", record.aiComment]]
+    : slug === "leetcode" ? [["AI evaluation", record.aiEvaluation]]
+    : slug === "interview-practice" ? [["AI evaluation", record.aiEvaluation]]
     : slug === "questions" ? [["AI follow-up", record.aiFollowUp], ["Answer summary", record.aiSummary]]
     : slug === "appearance" ? [["AI observation", record.aiComment]]
     : slug === "stocks" ? [["Conclusion", record.aiComment], ["Reasonable points", record.aiStrengths], ["Risks", record.aiRisks], ["Watch next", record.aiWatchlist]]
@@ -38,6 +42,36 @@ function AIResults({ slug, record }: { slug: string; record: any }) {
         {sections.filter(([, value]) => value).map(([label, value]) => <div key={label} className="px-5 py-5"><div className="field-label">{label}</div><div className="prose-private">{value}</div></div>)}
       </div>
     </section>
+  );
+}
+
+function RepeatableDisplay({ field, value }: { field: ModuleField; value: unknown }) {
+  if (!field.repeatable) return null;
+  const items = normalizeRepeatableItems(value);
+  if (!items.length) return null;
+  return (
+    <div className="px-5 py-5">
+      <div className="field-label mb-3">{field.label}</div>
+      <div className="space-y-4">
+        {items.map((item, index) => (
+          <section key={index} className="rounded-2xl border border-line bg-[#fcfbf8] p-4">
+            <h3 className="mb-4 text-sm font-bold">{field.repeatable!.itemLabel} {index + 1}{item.name ? ` · ${item.name}` : ""}</h3>
+            <div className="space-y-4">
+              {field.repeatable!.fields.filter((subfield) => subfield.name !== "name" && item[subfield.name]).map((subfield) => (
+                <div key={subfield.name}>
+                  <div className="field-label">{subfield.label}</div>
+                  {subfield.name === "code" ? (
+                    <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-xl bg-ink px-4 py-3 text-xs leading-6 text-stone-100">{item[subfield.name]}</pre>
+                  ) : (
+                    <div className="prose-private mt-1 whitespace-pre-wrap">{item[subfield.name]}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -90,12 +124,17 @@ export default async function ModuleDetailPage({ params, searchParams }: { param
           {record.photoAttachmentId && <div className="card mb-6 overflow-hidden"><img src={`/api/files/${record.photoAttachmentId}`} alt={`Appearance record from ${formatDate(record.date)}`} className="max-h-[70vh] w-full object-contain" /></div>}
           <section className="card overflow-hidden">
             <div className="divide-y divide-line">
-              {config.fields.filter((field) => !["file", "tags"].includes(field.type) && valueFor(record, field.name)).map((field) => (
-                <div key={field.name} className={`px-5 py-5 ${field.wide ? "" : "sm:grid sm:grid-cols-[170px_1fr] sm:gap-5"}`}>
-                  <div className="field-label mb-2 sm:mb-0">{field.label}</div>
-                  <div className="prose-private">{valueFor(record, field.name)}</div>
-                </div>
-              ))}
+              {config.fields.filter((field) => !["file", "tags"].includes(field.type)).map((field) => {
+                if (field.type === "repeatable") return <RepeatableDisplay key={field.name} field={field} value={record[field.name]} />;
+                const value = valueFor(record, field.name);
+                if (!value) return null;
+                return (
+                  <div key={field.name} className={`px-5 py-5 ${field.wide ? "" : "sm:grid sm:grid-cols-[170px_1fr] sm:gap-5"}`}>
+                    <div className="field-label mb-2 sm:mb-0">{field.label}</div>
+                    <div className="prose-private whitespace-pre-wrap">{value}</div>
+                  </div>
+                );
+              })}
               {!!record.tags?.length && <div className="px-5 py-5"><div className="field-label">Tags</div><div className="flex flex-wrap gap-2">{record.tags.map((tag: any) => <span className="pill" key={tag.id}>#{tag.name}</span>)}</div></div>}
               {record.attachment && <div className="px-5 py-5 sm:grid sm:grid-cols-[170px_1fr] sm:gap-5"><div className="field-label">Original file</div><a className="text-sm font-bold text-moss underline underline-offset-4" href={`/api/files/${record.attachment.id}`}>{record.attachment.originalName}</a></div>}
               {record.parseError && <div className="px-5 py-4 text-sm text-amber-800">File kept safely, but text extraction failed: {record.parseError}</div>}

@@ -78,6 +78,22 @@ export async function summarizeQuestion(question: unknown) {
   });
 }
 
+export async function evaluateLeetCodeReflection(record: unknown) {
+  return aiClient.generate({
+    systemPrompt: `You are a rigorous but encouraging coding interview coach. ${evidenceRule} Evaluate only the stored prompt, topics, solutions, reflections, and notes. Focus on correctness, pattern recognition, complexity, edge cases, and what to practice next.`,
+    userPrompt: `Evaluate this LeetCode reflection. Return concise sections: Overall verdict, Correctness risks, Complexity check, Pattern lesson, Edge cases, Next drill.\n\n${JSON.stringify(record)}`,
+    maxTokens: 1200,
+  });
+}
+
+export async function evaluateInterviewPractice(record: unknown) {
+  return aiClient.generate({
+    systemPrompt: `You are a practical interview coach. ${evidenceRule} Evaluate the supplied question, topics, answers, and reflection. Be specific about clarity, structure, tradeoffs, missing evidence, and next rehearsal steps.`,
+    userPrompt: `Evaluate this interview practice record. Return concise sections: Strong points, Weak points, Missing follow-ups, Better answer structure, Next rehearsal.\n\n${JSON.stringify(record)}`,
+    maxTokens: 1200,
+  });
+}
+
 export async function evaluateStockDecision(record: unknown) {
   const raw = await aiClient.generate({
     systemPrompt: `You review an investment decision journal, not give financial advice. ${evidenceRule} Return valid JSON only. Rating must be GREEN, YELLOW, ORANGE, RED, or BLUE.`,

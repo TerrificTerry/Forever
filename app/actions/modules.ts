@@ -8,7 +8,8 @@ import { getModuleRecord } from "@/lib/module-data";
 import { hasSecondaryAccess, requireSecondary, requireUser } from "@/lib/auth";
 import { asDate, csv, optionalNumber, optionalString } from "@/lib/utils";
 import { dataTypeFor, extractReadableText, storeUpload } from "@/lib/uploads";
-import { aiClient, commentDiaryEntry, evaluateStockDecision, followUpQuestion, summarizeDataItem, summarizeDiaryEntry, summarizeDiaryRange, summarizeGameStyle, summarizeQuestion } from "@/lib/ai";
+import { aiClient, commentDiaryEntry, evaluateInterviewPractice, evaluateLeetCodeReflection, evaluateStockDecision, followUpQuestion, summarizeDataItem, summarizeDiaryEntry, summarizeDiaryRange, summarizeGameStyle, summarizeQuestion } from "@/lib/ai";
+import { compactRepeatableItems } from "@/lib/repeatable";
 
 function required(formData: FormData, name: string) {
   const value = optionalString(formData.get(name));
@@ -23,6 +24,10 @@ function tagNames(formData: FormData) {
 function tags(formData: FormData, update = false) {
   const connectOrCreate = tagNames(formData).map((name) => ({ where: { name }, create: { name } }));
   return update ? { set: [], connectOrCreate } : { connectOrCreate };
+}
+
+function repeatable(formData: FormData, name: string) {
+  return compactRepeatableItems(formData.get(name));
 }
 
 async function authorizeModule(slug: string, next: string) {
@@ -53,6 +58,25 @@ export async function saveModuleAction(slug: string, id: string | null, formData
           completedAt: status === "DONE" ? new Date() : null, tags: tags(formData, update),
         };
         id ? await prisma.task.update({ where: { id }, data }) : await prisma.task.create({ data });
+        break;
+      }
+      case "leetcode": {
+        const problemNumber = optionalNumber(formData.get("problemNumber"));
+        if (!problemNumber || problemNumber <= 0) throw new Error("Problem number is required.");
+        const data = {
+          problemNumber: Math.trunc(problemNumber), title: optionalString(formData.get("title")), difficulty: optionalString(formData.get("difficulty")),
+          sourceUrl: optionalString(formData.get("sourceUrl")), topics: csv(formData.get("topics")),
+          problemDescription: optionalString(formData.get("problemDescription")), solutions: repeatable(formData, "solutions"), tags: tags(formData, update),
+        };
+        id ? await prisma.leetCodeReflection.update({ where: { id }, data: data as any }) : await prisma.leetCodeReflection.create({ data: data as any });
+        break;
+      }
+      case "interview-practice": {
+        const data = {
+          title: optionalString(formData.get("title")), question: required(formData, "question"), topics: csv(formData.get("topics")),
+          answers: repeatable(formData, "answers"), reflection: optionalString(formData.get("reflection")), tags: tags(formData, update),
+        };
+        id ? await prisma.interviewPractice.update({ where: { id }, data: data as any }) : await prisma.interviewPractice.create({ data: data as any });
         break;
       }
       case "diary": {
@@ -159,6 +183,7 @@ export async function saveModuleAction(slug: string, id: string | null, formData
   }
   revalidatePath(`/${slug}`);
   if (slug === "tasks") revalidatePath("/home");
+  if (["leetcode", "interview-practice"].includes(slug)) revalidatePath("/work");
   redirect(`/${slug}?notice=${encodeURIComponent(`${getModule(slug)!.singular} saved.`)}`);
 }
 
@@ -166,6 +191,8 @@ export async function deleteModuleAction(slug: string, id: string) {
   await authorizeModule(slug, `/${slug}/${id}`);
   switch (slug) {
     case "tasks": await prisma.task.delete({ where: { id } }); break;
+    case "leetcode": await prisma.leetCodeReflection.delete({ where: { id } }); break;
+    case "interview-practice": await prisma.interviewPractice.delete({ where: { id } }); break;
     case "diary": await prisma.diaryEntry.delete({ where: { id } }); break;
     case "questions": await prisma.dailyQuestion.delete({ where: { id } }); break;
     case "appearance": await prisma.appearanceRecord.delete({ where: { id } }); break;
@@ -177,6 +204,7 @@ export async function deleteModuleAction(slug: string, id: string) {
   }
   revalidatePath(`/${slug}`);
   if (slug === "tasks") revalidatePath("/home");
+  if (["leetcode", "interview-practice"].includes(slug)) revalidatePath("/work");
   redirect(`/${slug}?notice=Record%20deleted`);
 }
 
@@ -198,6 +226,8 @@ export async function runRecordAIAction(slug: string, id: string) {
   try {
     switch (slug) {
       case "diary": await prisma.diaryEntry.update({ where: { id }, data: { aiComment: await commentDiaryEntry(record) } }); break;
+      case "leetcode": await prisma.leetCodeReflection.update({ where: { id }, data: { aiEvaluation: await evaluateLeetCodeReflection(record) } }); break;
+      case "interview-practice": await prisma.interviewPractice.update({ where: { id }, data: { aiEvaluation: await evaluateInterviewPractice(record) } }); break;
       case "questions": {
         const followUp = await followUpQuestion(record);
         const summary = record.answer ? await summarizeQuestion(record) : null;

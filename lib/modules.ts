@@ -1,4 +1,6 @@
-export type FieldType = "text" | "textarea" | "date" | "number" | "select" | "checkbox" | "file" | "tags";
+import type { RepeatableSubField } from "@/lib/repeatable";
+
+export type FieldType = "text" | "textarea" | "date" | "number" | "select" | "checkbox" | "file" | "tags" | "repeatable";
 
 export type ModuleField = {
   name: string;
@@ -11,6 +13,12 @@ export type ModuleField = {
   wide?: boolean;
   newOnly?: boolean;
   accept?: string;
+  repeatable?: {
+    itemLabel: string;
+    addLabel: string;
+    minItems?: number;
+    fields: RepeatableSubField[];
+  };
 };
 
 export type ModuleConfig = {
@@ -41,6 +49,65 @@ export const modules: Record<string, ModuleConfig> = {
       { name: "status", label: "Status", type: "select", required: true, options: ["TODO", "IN_PROGRESS", "DONE"] },
       tags,
       { name: "details", label: "Notes", type: "textarea", placeholder: "Context, links, or the next concrete step.", wide: true },
+    ],
+  },
+  leetcode: {
+    slug: "leetcode", singular: "LeetCode reflection", title: "LeetCode reflections", eyebrow: "Work / interview prep",
+    description: "Save the original prompt, the pattern behind it, your solutions, and the reflection that makes the next problem easier.",
+    newLabel: "New LeetCode reflection", aiLabel: "AI evaluate",
+    fields: [
+      { name: "problemNumber", label: "Problem number", type: "number", required: true, placeholder: "1" },
+      { name: "title", label: "Title", type: "text", placeholder: "Two Sum" },
+      { name: "difficulty", label: "Difficulty", type: "select", options: ["Easy", "Medium", "Hard"] },
+      { name: "topics", label: "Concepts", type: "text", placeholder: "dfs, dynamic programming, binary search", wide: true },
+      { name: "sourceUrl", label: "LeetCode URL", type: "text", placeholder: "https://leetcode.com/problems/...", wide: true },
+      { name: "problemDescription", label: "Original problem description", type: "textarea", placeholder: "Fetch from LeetCode or paste the prompt here.", wide: true },
+      {
+        name: "solutions", label: "Solutions", type: "repeatable", wide: true,
+        help: "Start with one solution. Add more when you discover a better pattern or a cleaner implementation.",
+        repeatable: {
+          itemLabel: "Solution",
+          addLabel: "Add solution",
+          minItems: 1,
+          fields: [
+            { name: "name", label: "Name", placeholder: "Brute force / Memoized DFS / Bottom-up DP" },
+            { name: "complexity", label: "Complexity", placeholder: "Time O(n), space O(n)" },
+            { name: "approach", label: "Approach", type: "textarea", placeholder: "Core idea, invariant, why it works.", wide: true },
+            { name: "code", label: "Code", type: "textarea", placeholder: "Paste the key implementation or pseudocode.", wide: true },
+            { name: "reflection", label: "Reflection", type: "textarea", placeholder: "What did you miss? What signal should remind you of this pattern?", wide: true },
+            { name: "notes", label: "Annotations", type: "textarea", placeholder: "Edge cases, variants, proof notes, follow-ups.", wide: true },
+          ],
+        },
+      },
+      tags,
+    ],
+  },
+  "interview-practice": {
+    slug: "interview-practice", singular: "Interview practice", title: "Interview practice", eyebrow: "Work / rehearsal",
+    description: "Practice technical, behavioral, and system-design questions with multiple answers and a reusable reflection trail.",
+    newLabel: "New interview practice", aiLabel: "AI evaluate",
+    fields: [
+      { name: "title", label: "Title", type: "text", placeholder: "System design cache / Tell me about conflict", wide: true },
+      { name: "question", label: "Question", type: "textarea", required: true, placeholder: "Paste or write the interview question.", wide: true },
+      { name: "topics", label: "Concepts", type: "text", placeholder: "system design, dp, leadership, debugging", wide: true },
+      {
+        name: "answers", label: "Answers", type: "repeatable", wide: true,
+        help: "Keep alternate attempts instead of overwriting them. The comparison is where the learning hides.",
+        repeatable: {
+          itemLabel: "Answer",
+          addLabel: "Add answer",
+          minItems: 1,
+          fields: [
+            { name: "name", label: "Name", placeholder: "First attempt / STAR version / Optimized solution" },
+            { name: "answer", label: "Answer", type: "textarea", placeholder: "Your spoken answer, solution outline, or implementation.", wide: true },
+            { name: "code", label: "Code or structure", type: "textarea", placeholder: "Optional code, system design outline, or bullet structure.", wide: true },
+            { name: "reflection", label: "Reflection", type: "textarea", placeholder: "What was strong, unclear, missing, or too slow?", wide: true },
+            { name: "notes", label: "Annotations", type: "textarea", placeholder: "Follow-ups, edge cases, recruiter signals, examples to reuse.", wide: true },
+          ],
+        },
+      },
+      { name: "reflection", label: "Overall reflection", type: "textarea", placeholder: "What should change next time?", wide: true },
+      tags,
     ],
   },
   diary: {
@@ -172,9 +239,15 @@ export function getModule(slug: string) {
   return modules[slug] ?? null;
 }
 
-export const navigation = [
-  ["/home", "Home"], ["/tasks", "Tasks"], ["/diary", "Diary"], ["/questions", "Daily Questions"],
+export type NavigationLink = readonly [href: string, label: string];
+export type NavigationGroup = { href?: string; label: string; items: readonly NavigationLink[] };
+export type NavigationEntry = NavigationLink | NavigationGroup;
+
+export const navigation: readonly NavigationEntry[] = [
+  ["/home", "Home"], ["/tasks", "Tasks"],
+  { href: "/work", label: "Work", items: [["/leetcode", "LeetCode Reflections"], ["/interview-practice", "Interview Practice"]] },
+  ["/diary", "Diary"], ["/questions", "Daily Questions"],
   ["/appearance", "Appearance"], ["/stocks", "Stocks"], ["/stock-tips", "Stock Tips"],
   ["/game", "Game Reflection"], ["/data-feed", "Data Feed"], ["/my-ai", "My AI"],
   ["/settings", "Settings"],
-] as const;
+];

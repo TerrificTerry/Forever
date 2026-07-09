@@ -106,10 +106,10 @@ model SecondaryResetToken {
 }
 
 model Tag {
-  id                String             @id @default(uuid())
-  name              String             @unique
+  id                String               @id @default(uuid())
+  name              String               @unique
   color             String?
-  createdAt         DateTime           @default(now())
+  createdAt         DateTime             @default(now())
   diaryEntries      DiaryEntry[]
   dailyQuestions    DailyQuestion[]
   appearanceRecords AppearanceRecord[]
@@ -118,6 +118,8 @@ model Tag {
   dataFeedItems     DataFeedItem[]
   aiMemoryItems     AIMemoryItem[]
   tasks             Task[]
+  leetCodeItems     LeetCodeReflection[]
+  interviewItems    InterviewPractice[]
 }
 
 model Attachment {
@@ -167,6 +169,39 @@ model Task {
   updatedAt   DateTime   @updatedAt
 
   @@index([status, dueDate])
+}
+
+model LeetCodeReflection {
+  id                 String   @id @default(uuid())
+  problemNumber      Int
+  title              String?
+  difficulty         String?
+  sourceUrl          String?
+  topics             String[]
+  problemDescription String?
+  solutions          Json     @default("[]")
+  aiEvaluation       String?
+  tags               Tag[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([problemNumber])
+  @@index([createdAt])
+}
+
+model InterviewPractice {
+  id           String   @id @default(uuid())
+  title        String?
+  question     String
+  topics       String[]
+  answers      Json     @default("[]")
+  reflection   String?
+  aiEvaluation String?
+  tags         Tag[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([createdAt])
 }
 
 model DailyQuestion {

@@ -3,19 +3,42 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { navigation } from "@/lib/modules";
+import { navigation, type NavigationEntry, type NavigationGroup } from "@/lib/modules";
 import { logoutAction } from "@/app/actions/auth";
+
+function isNavigationGroup(entry: NavigationEntry): entry is NavigationGroup {
+  return !Array.isArray(entry);
+}
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || (href !== "/home" && pathname.startsWith(`${href}/`));
+}
+
+function linkClass(active: boolean, child = false) {
+  return `block rounded-lg px-3 py-2.5 text-[14px] transition ${child ? "ml-3" : ""} ${active ? "bg-moss text-white" : "text-stone-600 hover:bg-stone-100 hover:text-ink"}`;
+}
 
 function NavLinks({ close }: { close?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="space-y-1" aria-label="Main navigation">
-      {navigation.map(([href, label]) => {
-        const active = pathname === href || (href !== "/home" && pathname.startsWith(`${href}/`));
+      {navigation.map((entry) => {
+        if (!isNavigationGroup(entry)) {
+          const [href, label] = entry;
+          return <Link key={href} href={href} onClick={close} className={linkClass(isActive(pathname, href))}>{label}</Link>;
+        }
+        const groupActive = (entry.href ? isActive(pathname, entry.href) : false) || entry.items.some(([href]) => isActive(pathname, href));
         return (
-          <Link key={href} href={href} onClick={close} className={`block rounded-lg px-3 py-2.5 text-[14px] transition ${active ? "bg-moss text-white" : "text-stone-600 hover:bg-stone-100 hover:text-ink"}`}>
-            {label}
-          </Link>
+          <div key={entry.label} className="py-1">
+            {entry.href ? (
+              <Link href={entry.href} onClick={close} className={linkClass(groupActive)}>{entry.label}</Link>
+            ) : (
+              <div className={`px-3 py-2 text-[11px] font-bold uppercase tracking-[.18em] ${groupActive ? "text-moss" : "text-stone-400"}`}>{entry.label}</div>
+            )}
+            <div className="mt-1 space-y-1">
+              {entry.items.map(([href, label]) => <Link key={href} href={href} onClick={close} className={linkClass(isActive(pathname, href), true)}>{label}</Link>)}
+            </div>
+          </div>
         );
       })}
     </nav>
