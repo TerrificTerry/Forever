@@ -14,8 +14,9 @@ type LeetCodeQuestion = LeetCodeListQuestion & {
 };
 
 const LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql";
+const LEETCODE_ALGORITHMS_URL = "https://leetcode.com/api/problems/algorithms/";
 
-async function leetcodeGraphQL<T>(query: string, variables: Record<string, unknown>) {
+async function leetcodeGraphQL<T>(query: string, variables: Record<string, unknown>, operationName?: string) {
   const response = await fetch(LEETCODE_GRAPHQL_URL, {
     method: "POST",
     headers: {
@@ -23,14 +24,28 @@ async function leetcodeGraphQL<T>(query: string, variables: Record<string, unkno
       Referer: "https://leetcode.com/problemset/",
       "User-Agent": "SpiritArchive/1.0",
     },
-    body: JSON.stringify({ query, variables }),
+    body: JSON.stringify({ query, variables, operationName }),
     cache: "no-store",
   });
-  if (!response.ok) throw new Error(`LeetCode returned HTTP ${response.status}.`);
-  const payload = await response.json() as { data?: T; errors?: Array<{ message?: string }> };
+  const text = await response.text();
+  if (!response.ok) throw new Error(`LeetCode returned HTTP ${response.status}${text ? `: ${text.slice(0, 180)}` : ""}.`);
+  const payload = JSON.parse(text) as { data?: T; errors?: Array<{ message?: string }> };
   if (payload.errors?.length) throw new Error(payload.errors.map((error) => error.message).filter(Boolean).join("; ") || "LeetCode returned a GraphQL error.");
   if (!payload.data) throw new Error("LeetCode returned an empty response.");
   return payload.data;
+}
+
+async function leetcodeJson<T>(url: string) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      Referer: "https://leetcode.com/problemset/",
+      "User-Agent": "SpiritArchive/1.0",
+    },
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`LeetCode returned HTTP ${response.status}.`);
+  return response.json() as Promise<T>;
 }
 
 function decodeHtmlEntities(value: string) {
@@ -82,12 +97,16 @@ function normalizeNumber(value: unknown) {
   return Number.parseInt(String(value || "").replace(/\D+/g, ""), 10);
 }
 
-export async function fetchLeetCodeProblemByNumber(problemNumber: number) {
-  const listQuery = `
+function difficultyFromLevel(level: unknown) {
+  return level === 1 ? "Easy" : level === 2 ? "Medium" : level === 3 ? "Hard" : "";
+}
+
+async function findProblemSummaryByNumber(problemNumber: number) {
+  const currentListQuery = `
     query problemsetQuestionList($categorySlug: String, $skip: Int, $limit: Int, $filters: QuestionListFilterInput) {
-      problemsetQuestionList(categorySlug: $categorySlug, skip: $skip, limit: $limit, filters: $filters) {
-        questions {
-          frontendQuestionId
+      problemsetQuestionList: questionList(categorySlug: $categorySlug, skip: $skip, limit: $limit, filters: $filters) {
+        questions: data {
+          frontendQuestionId: questionFrontendId
           title
           titleSlug
           difficulty
@@ -96,14 +115,43 @@ export async function fetchLeetCodeProblemByNumber(problemNumber: number) {
       }
     }
   `;
-  const listData = await leetcodeGraphQL<{ problemsetQuestionList?: { questions?: LeetCodeListQuestion[] } }>(listQuery, {
-    categorySlug: "",
-    skip: 0,
-    limit: 30,
-    filters: { searchKeywords: String(problemNumber) },
-  });
-  const questions = listData.problemsetQuestionList?.questions || [];
-  const match = questions.find((question) => normalizeNumber(question.frontendQuestionId) === problemNumber);
+  try {
+    const listData = await leetcodeGraphQL<{ problemsetQuestionList?: { questions?: LeetCodeListQuestion[] } }>(currentListQuery, {
+      categorySlug: "",
+      skip: 0,
+      limit: 30,
+      filters: { searchKeywords: String(problemNumber) },
+    }, "problemsetQuestionList");
+    const questions = listData.problemsetQuestionList?.questions || [];
+    const match = questions.find((question) => normalizeNumber(question.frontendQuestionId || question.questionFrontendId) === problemNumber);
+    if (match?.titleSlug) return match;
+  } catch {
+    // LeetCode changes this GraphQL list field occasionally. Fall through to the older public REST list.
+  }
+
+  const restData = await leetcodeJson<{
+    stat_status_pairs?: Array<{
+      stat?: {
+        frontend_question_id?: number | string | null;
+        question__title?: string | null;
+        question__title_slug?: string | null;
+      };
+      difficulty?: { level?: number | null } | null;
+    }>;
+  }>(LEETCODE_ALGORITHMS_URL);
+  const match = restData.stat_status_pairs?.find((item) => normalizeNumber(item.stat?.frontend_question_id) === problemNumber);
+  if (!match?.stat?.question__title_slug) return null;
+  return {
+    frontendQuestionId: String(match.stat.frontend_question_id || problemNumber),
+    title: match.stat.question__title || "",
+    titleSlug: match.stat.question__title_slug,
+    difficulty: difficultyFromLevel(match.difficulty?.level),
+    topicTags: [],
+  };
+}
+
+export async function fetchLeetCodeProblemByNumber(problemNumber: number) {
+  const match = await findProblemSummaryByNumber(problemNumber);
   if (!match?.titleSlug) throw new Error(`LeetCode problem #${problemNumber} was not found.`);
 
   const detailQuery = `
@@ -120,7 +168,7 @@ export async function fetchLeetCodeProblemByNumber(problemNumber: number) {
       }
     }
   `;
-  const detailData = await leetcodeGraphQL<{ question?: LeetCodeQuestion | null }>(detailQuery, { titleSlug: match.titleSlug });
+  const detailData = await leetcodeGraphQL<{ question?: LeetCodeQuestion | null }>(detailQuery, { titleSlug: match.titleSlug }, "questionData");
   const question = detailData.question;
   if (!question) throw new Error(`LeetCode problem #${problemNumber} details were not found.`);
   const frontendId = normalizeNumber(question.questionFrontendId || match.frontendQuestionId || match.questionFrontendId) || problemNumber;
