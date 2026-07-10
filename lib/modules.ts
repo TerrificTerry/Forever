@@ -247,7 +247,7 @@ export type NavigationGroup = { href?: string; label: string; items: readonly Na
 export type NavigationEntry = NavigationLink | NavigationGroup;
 
 export const navigation: readonly NavigationEntry[] = [
-  ["/home", "Home"], ["/tasks", "Tasks"],
+  ["/home", "Home"], ["/tasks", "Tasks"], ["/news", "News"],
   { href: "/work", label: "Work", items: [["/leetcode", "LeetCode Reflections"], ["/interview-practice", "Interview Practice"]] },
   ["/diary", "Diary"], ["/questions", "Daily Questions"],
   ["/appearance", "Appearance"], ["/stocks", "Stocks"], ["/stock-tips", "Stock Tips"],

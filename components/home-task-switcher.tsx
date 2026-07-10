@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toggleTaskAction } from "@/app/actions/modules";
+import { saveTodayBoardAction, toggleTaskAction } from "@/app/actions/modules";
 import { SubmitButton } from "@/components/submit-button";
 import { formatDate } from "@/lib/utils";
 
@@ -18,23 +18,26 @@ type HomeTask = {
 const TODO_STORAGE_KEY = "forever-home-today-board";
 const MODE_STORAGE_KEY = "forever-home-task-mode";
 
-export function HomeTaskSwitcher({ tasks, taskCount }: { tasks: HomeTask[]; taskCount: number }) {
+export function HomeTaskSwitcher({ tasks, taskCount, initialBoard = "" }: { tasks: HomeTask[]; taskCount: number; initialBoard?: string }) {
   const [mode, setMode] = useState<"tasks" | "board">("tasks");
-  const [boardText, setBoardText] = useState("");
+  const [boardText, setBoardText] = useState(initialBoard);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setBoardText(localStorage.getItem(TODO_STORAGE_KEY) || "");
+    if (!initialBoard) {
+      const legacyDraft = localStorage.getItem(TODO_STORAGE_KEY) || "";
+      if (legacyDraft) setBoardText(legacyDraft);
+    }
+    localStorage.removeItem(TODO_STORAGE_KEY);
     const savedMode = localStorage.getItem(MODE_STORAGE_KEY);
     if (savedMode === "tasks" || savedMode === "board") setMode(savedMode);
     setHydrated(true);
-  }, []);
+  }, [initialBoard]);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(TODO_STORAGE_KEY, boardText);
     localStorage.setItem(MODE_STORAGE_KEY, mode);
-  }, [boardText, hydrated, mode]);
+  }, [hydrated, mode]);
 
   const lineCount = boardText.trim() ? boardText.trim().split(/\n+/).filter(Boolean).length : 0;
 
@@ -43,8 +46,8 @@ export function HomeTaskSwitcher({ tasks, taskCount }: { tasks: HomeTask[]; task
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-moss-soft/40 px-5 py-4 sm:px-6">
         <div>
           <div className="eyebrow">First things first</div>
-          <h2 className="mt-1 font-serif text-2xl">{mode === "tasks" ? "Tasks" : "Today board"}</h2>
-          <div className="mt-1 text-xs text-stone-500">{mode === "tasks" ? `${taskCount} ${taskCount === 1 ? "task" : "tasks"} in view` : "Saved locally in this browser."}</div>
+          <h2 className="mt-1 font-serif text-2xl">{mode === "tasks" ? "Tasks" : "Todolist"}</h2>
+          <div className="mt-1 text-xs text-stone-500">{mode === "tasks" ? `${taskCount} ${taskCount === 1 ? "task" : "tasks"} in view` : "Saved to your archive when you press Save."}</div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link className="text-xs font-bold text-moss" href="/tasks">View all</Link>
@@ -87,20 +90,21 @@ export function HomeTaskSwitcher({ tasks, taskCount }: { tasks: HomeTask[]; task
           </div>
         )
       ) : (
-        <div className="bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,#14202a_0%,#0a1117_100%)] px-5 py-5 sm:px-6 sm:py-6">
-          <label className="mb-3 block text-xs font-bold uppercase tracking-[.18em] text-stone-300" htmlFor="home-todo-board">Today board</label>
+        <form action={saveTodayBoardAction} className="bg-[#fcfbf8] px-5 py-5 sm:px-6 sm:py-6">
+          <label className="mb-3 block text-xs font-bold uppercase tracking-[.18em] text-stone-500" htmlFor="home-todo-board">Todolist</label>
           <textarea
             id="home-todo-board"
-            className="min-h-80 w-full resize-y rounded-2xl border border-white/10 bg-white/5 px-4 py-4 font-mono text-sm leading-6 text-stone-50 placeholder:text-stone-500 focus:border-emerald-400 focus:outline-none"
+            name="boardText"
+            className="min-h-80 w-full resize-y rounded-2xl border border-line bg-paper px-4 py-4 font-mono text-sm leading-6 text-ink placeholder:text-stone-400 focus:border-moss focus:outline-none"
             placeholder="One line per thing. Put today’s loose plan here, or keep the same small rituals you repeat every day."
             value={boardText}
             onChange={(event) => setBoardText(event.target.value)}
           />
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-400">
-            <span>Saved automatically on this device.</span>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
             <span>{lineCount ? `${lineCount} line${lineCount === 1 ? "" : "s"}` : "Empty board"}</span>
+            <SubmitButton className="button-secondary min-h-9 px-4 text-xs" pending="Saving...">Save todolist</SubmitButton>
           </div>
-        </div>
+        </form>
       )}
     </section>
   );

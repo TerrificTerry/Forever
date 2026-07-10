@@ -3,15 +3,15 @@ type CodeToken = { kind: TokenKind; text: string };
 type CodeLanguage = "python" | "java" | "c" | "cpp" | "javascript" | "typescript" | "go" | "text";
 
 const TOKEN_CLASS: Record<TokenKind, string> = {
-  plain: "text-stone-100",
-  keyword: "font-semibold text-violet-300",
-  type: "text-sky-300",
-  builtin: "text-emerald-300",
-  string: "text-amber-300",
-  comment: "italic text-stone-500",
-  number: "text-pink-300",
-  function: "text-blue-300",
-  operator: "text-stone-300",
+  plain: "text-stone-800",
+  keyword: "font-semibold text-violet-700",
+  type: "text-sky-700",
+  builtin: "text-emerald-700",
+  string: "text-amber-700",
+  comment: "italic text-stone-400",
+  number: "text-pink-700",
+  function: "text-blue-700",
+  operator: "text-stone-500",
 };
 
 const LANGUAGE_LABEL: Record<CodeLanguage, string> = {
@@ -200,10 +200,10 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
   const normalizedLanguage = normalizeLanguage(language);
   const lines = normalizedLanguage === "text" ? code.replace(/\r\n/g, "\n").split("\n").map((line) => [{ kind: "plain" as const, text: line }]) : highlightCode(code, normalizedLanguage);
   return (
-    <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-[#0b1020] shadow-inner">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-        <span className="text-[11px] font-bold uppercase tracking-[.18em] text-stone-400">{LANGUAGE_LABEL[normalizedLanguage]}</span>
-        <span className="text-[11px] text-stone-500">syntax highlighted</span>
+    <div className="mt-2 overflow-hidden rounded-xl border border-line bg-[#fbfaf6] shadow-inner">
+      <div className="flex items-center justify-between border-b border-line bg-moss-soft/35 px-4 py-2">
+        <span className="text-[11px] font-bold uppercase tracking-[.18em] text-stone-500">{LANGUAGE_LABEL[normalizedLanguage]}</span>
+        <span className="text-[11px] text-stone-400">syntax highlighted</span>
       </div>
       <pre className="overflow-x-auto px-4 py-3 text-xs leading-6">
         <code>

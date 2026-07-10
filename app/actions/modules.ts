@@ -219,6 +219,18 @@ export async function toggleTaskAction(id: string) {
   revalidatePath(`/tasks/${id}`);
 }
 
+export async function saveTodayBoardAction(formData: FormData) {
+  await requireUser();
+  const value = String(formData.get("boardText") || "").slice(0, 20000);
+  await prisma.appSetting.upsert({
+    where: { key: "home.todayBoard" },
+    update: { value, isSensitive: false },
+    create: { key: "home.todayBoard", value, isSensitive: false },
+  });
+  revalidatePath("/home");
+  redirect("/home?notice=Today%20board%20saved");
+}
+
 export async function runRecordAIAction(slug: string, id: string) {
   await authorizeModule(slug, `/${slug}/${id}`);
   const record = await getModuleRecord(slug, id);

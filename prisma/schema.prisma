@@ -171,6 +171,38 @@ model Task {
   @@index([status, dueDate])
 }
 
+model NewsTopic {
+  id            String     @id @default(uuid())
+  title         String
+  query         String
+  description   String?
+  lastFetchedAt DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  items         NewsItem[]
+
+  @@index([updatedAt])
+  @@index([lastFetchedAt])
+}
+
+model NewsItem {
+  id          String    @id @default(uuid())
+  topicId     String
+  topic       NewsTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  headline    String
+  source      String?
+  url         String
+  publishedAt DateTime?
+  rawSnippet  String?
+  aiSummary   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([topicId, url])
+  @@index([topicId, publishedAt])
+  @@index([createdAt])
+}
+
 model LeetCodeReflection {
   id                 String   @id @default(uuid())
   problemNumber      Int

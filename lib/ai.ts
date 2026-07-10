@@ -124,6 +124,30 @@ export async function summarizeDataItem(item: unknown) {
   });
 }
 
+export async function summarizeNewsItems(topic: string, items: unknown[]) {
+  return aiClient.generate({
+    systemPrompt: `You summarize current news search results. Use only the supplied headline, source, date, URL, and snippet. Do not invent facts or imply you read the full article. Return valid JSON only.`,
+    userPrompt: `Topic: ${topic}\n\nReturn exactly one JSON array with the same length and order as the input. Each item must be {"headline":"short cleaned headline","summary":"one concise sentence, grounded only in the supplied data"}.\n\nInput:\n${JSON.stringify(items)}`,
+    maxTokens: 900,
+  });
+}
+
+export async function summarizeRecentStatus(input: { start: string; end: string; access: Record<string, boolean>; records: Record<string, unknown[]> }) {
+  return aiClient.generate({
+    systemPrompt: `You are a thoughtful private life-and-work summarizer. ${evidenceRule} Be concrete, warm, and useful. Do not diagnose. Mention which sensitive sections were excluded if locked.`,
+    userPrompt: `Summarize this person's recent situation from ${input.start} to ${input.end}. Use sections: Snapshot, What changed, Current focus, Friction or risks, Patterns, Useful next questions, Gentle next steps. Keep it grounded and concise.\n\n${JSON.stringify(input)}`,
+    maxTokens: 1800,
+  });
+}
+
+export async function chatAboutRecentStatus(input: { summary: string; recentConversation: string[]; question: string }) {
+  return aiClient.generate({
+    systemPrompt: `You are a grounded private conversation partner. Use the supplied recent-status summary as context, and answer the user's message naturally. ${evidenceRule} You may discuss other things, but clearly separate what comes from stored evidence from general reflection.`,
+    userPrompt: `Recent-status summary:\n${input.summary}\n\nRecent conversation:\n${input.recentConversation.join("\n\n---\n\n") || "None yet."}\n\nUser message:\n${input.question}`,
+    maxTokens: 1200,
+  });
+}
+
 export async function askPersonalAI(question: string, records: string) {
   return aiClient.generate({
     systemPrompt: `You answer questions about one person's stored history. ${evidenceRule} Use the headings Observed evidence, Interpretation, and Suggestion. If records are inadequate, write: "There is not enough stored data to answer confidently."`,

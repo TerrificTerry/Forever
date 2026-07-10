@@ -11,14 +11,30 @@ export type ModuleRow = {
   tags: Array<{ id: string; name: string; color: string | null }>;
   imageId?: string | null;
   aiRating?: string | null;
+  completed?: boolean;
 };
 
-export async function listModuleRecords(slug: string, search = "") {
+export type TaskSort = "urgency" | "priority" | "created";
+export type ListModuleOptions = {
+  includeCompleted?: boolean;
+  taskSort?: TaskSort;
+};
+
+function taskOrderBy(sort: TaskSort = "urgency") {
+  if (sort === "priority") return [{ priority: { sort: "desc" as const, nulls: "last" as const } }, { dueDate: { sort: "asc" as const, nulls: "last" as const } }, { createdAt: "desc" as const }];
+  if (sort === "created") return [{ createdAt: "desc" as const }];
+  return [{ dueDate: { sort: "asc" as const, nulls: "last" as const } }, { priority: { sort: "desc" as const, nulls: "last" as const } }, { createdAt: "desc" as const }];
+}
+
+export async function listModuleRecords(slug: string, search = "", options: ListModuleOptions = {}) {
   const contains = search ? { contains: search, mode: "insensitive" as const } : undefined;
   switch (slug) {
     case "tasks": return prisma.task.findMany({
-      where: contains ? { OR: [{ title: contains }, { details: contains }, { listName: contains }, { tags: { some: { name: contains } } }] } : undefined,
-      include: { tags: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }], take: 100,
+      where: {
+        ...(options.includeCompleted ? {} : { status: { not: "DONE" as const } }),
+        ...(contains ? { OR: [{ title: contains }, { details: contains }, { listName: contains }, { tags: { some: { name: contains } } }] } : {}),
+      },
+      include: { tags: true }, orderBy: taskOrderBy(options.taskSort), take: 100,
     });
     case "leetcode": return prisma.leetCodeReflection.findMany({
       where: contains ? { OR: [{ title: contains }, { problemDescription: contains }, { sourceUrl: contains }, { tags: { some: { name: contains } } }] } : undefined,
@@ -64,7 +80,7 @@ export function normalizeRows(slug: string, records: any[]): ModuleRow[] {
   return records.map((record) => {
     const common = { id: record.id, date: record.date || record.createdAt, tags: record.tags || [] };
     switch (slug) {
-      case "tasks": return { ...common, date: record.dueDate || record.createdAt, title: record.title, preview: record.details, badge: record.status.replaceAll("_", " "), meta: [record.listName, record.priority ? `Priority ${record.priority}/5` : null].filter(Boolean).join(" · ") || null };
+      case "tasks": return { ...common, date: record.dueDate || record.createdAt, title: record.title, preview: record.details, badge: record.status.replaceAll("_", " "), meta: [record.listName, record.priority ? `Priority ${record.priority}/5` : null].filter(Boolean).join(" · ") || null, completed: record.status === "DONE" };
       case "leetcode": {
         const firstSolution = normalizeRepeatableItems(record.solutions)[0];
         const preview = firstSolution ? firstSolution.reflection || firstSolution.approach || firstSolution.notes || firstSolution.code : record.problemDescription;
