@@ -15,15 +15,31 @@ export type ModuleRow = {
 };
 
 export type TaskSort = "urgency" | "priority" | "created";
+export type LeetCodeSort = "problem" | "difficulty" | "updated";
 export type ListModuleOptions = {
   includeCompleted?: boolean;
   taskSort?: TaskSort;
+  leetcodeSort?: LeetCodeSort;
 };
 
 function taskOrderBy(sort: TaskSort = "urgency") {
   if (sort === "priority") return [{ priority: { sort: "desc" as const, nulls: "last" as const } }, { dueDate: { sort: "asc" as const, nulls: "last" as const } }, { createdAt: "desc" as const }];
   if (sort === "created") return [{ createdAt: "desc" as const }];
   return [{ dueDate: { sort: "asc" as const, nulls: "last" as const } }, { priority: { sort: "desc" as const, nulls: "last" as const } }, { createdAt: "desc" as const }];
+}
+
+function leetcodeDifficultyRank(value: string | null | undefined) {
+  return value === "Easy" ? 1 : value === "Medium" ? 2 : value === "Hard" ? 3 : 4;
+}
+
+function leetcodeOrderBy(sort: LeetCodeSort = "problem") {
+  if (sort === "updated") return [{ updatedAt: "desc" as const }, { problemNumber: "asc" as const }];
+  return [{ problemNumber: "asc" as const }];
+}
+
+function leetcodeProblemNumber(search: string) {
+  const normalized = search.trim();
+  return /^#?\d+$/.test(normalized) ? Number.parseInt(normalized.replace(/^#/, ""), 10) : null;
 }
 
 export async function listModuleRecords(slug: string, search = "", options: ListModuleOptions = {}) {
@@ -36,10 +52,15 @@ export async function listModuleRecords(slug: string, search = "", options: List
       },
       include: { tags: true }, orderBy: taskOrderBy(options.taskSort), take: 100,
     });
-    case "leetcode": return prisma.leetCodeReflection.findMany({
-      where: contains ? { OR: [{ title: contains }, { problemDescription: contains }, { sourceUrl: contains }, { tags: { some: { name: contains } } }] } : undefined,
-      include: { tags: true }, orderBy: [{ problemNumber: "asc" }, { createdAt: "desc" }], take: 100,
-    });
+    case "leetcode": {
+      const problemNumber = search ? leetcodeProblemNumber(search) : null;
+      const records = await prisma.leetCodeReflection.findMany({
+        where: contains ? { OR: [...(problemNumber !== null ? [{ problemNumber }] : []), { title: contains }, { problemDescription: contains }, { sourceUrl: contains }, { tags: { some: { name: contains } } }] } : undefined,
+        include: { tags: true }, orderBy: leetcodeOrderBy(options.leetcodeSort), take: 100,
+      });
+      if (options.leetcodeSort !== "difficulty") return records;
+      return records.sort((left, right) => leetcodeDifficultyRank(left.difficulty) - leetcodeDifficultyRank(right.difficulty) || left.problemNumber - right.problemNumber);
+    }
     case "interview-practice": return prisma.interviewPractice.findMany({
       where: contains ? { OR: [{ title: contains }, { question: contains }, { reflection: contains }, { tags: { some: { name: contains } } }] } : undefined,
       include: { tags: true }, orderBy: { createdAt: "desc" }, take: 100,
@@ -84,7 +105,7 @@ export function normalizeRows(slug: string, records: any[]): ModuleRow[] {
       case "leetcode": {
         const firstSolution = normalizeRepeatableItems(record.solutions)[0];
         const preview = firstSolution ? firstSolution.reflection || firstSolution.approach || firstSolution.notes || firstSolution.code : record.problemDescription;
-        return { ...common, title: `#${record.problemNumber}${record.title ? ` ${record.title}` : ""}`, preview, badge: record.difficulty, meta: record.topics?.slice(0, 4).join(" · ") || null };
+        return { ...common, date: record.updatedAt || record.createdAt, title: `#${record.problemNumber}${record.title ? ` ${record.title}` : ""}`, preview, badge: record.difficulty, meta: record.topics?.slice(0, 4).join(" · ") || null };
       }
       case "interview-practice": {
         const firstAnswer = normalizeRepeatableItems(record.answers)[0];

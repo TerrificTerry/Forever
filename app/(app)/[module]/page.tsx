@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getModule } from "@/lib/modules";
 import { listModuleRecords, normalizeRows } from "@/lib/module-data";
-import type { TaskSort } from "@/lib/module-data";
+import type { LeetCodeSort, TaskSort } from "@/lib/module-data";
 import { requireSecondary } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeading } from "@/components/page-heading";
@@ -26,8 +26,9 @@ export default async function ModulePage({ params, searchParams }: { params: Pro
   if (config.secondary) await requireSecondary(config.secondary, `/${slug}`);
   const query = await searchParams;
   const taskSort: TaskSort = query.sort === "priority" || query.sort === "created" ? query.sort : "urgency";
+  const leetcodeSort: LeetCodeSort = query.sort === "difficulty" || query.sort === "updated" ? query.sort : "problem";
   const showCompleted = query.completed === "1";
-  const records = await listModuleRecords(slug, query.q || "", slug === "tasks" ? { includeCompleted: showCompleted, taskSort } : {});
+  const records = await listModuleRecords(slug, query.q || "", slug === "tasks" ? { includeCompleted: showCompleted, taskSort } : slug === "leetcode" ? { leetcodeSort } : {});
   const rows = normalizeRows(slug, records);
   const latestReview = ["diary", "game"].includes(slug)
     ? await prisma.aIReview.findFirst({ where: { module: slug }, orderBy: { createdAt: "desc" }, select: { title: true, content: true, createdAt: true } })
@@ -66,11 +67,30 @@ export default async function ModulePage({ params, searchParams }: { params: Pro
           </div>
         </section>
       )}
+      {slug === "leetcode" && (
+        <section className="card mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-bold">LeetCode view</div>
+            <p className="mt-1 text-xs text-stone-500">Default sorting is by problem number. Search accepts title text or exact problem numbers like #399.</p>
+          </div>
+          <form action="/leetcode" className="flex flex-wrap items-center gap-2">
+            {query.q && <input type="hidden" name="q" value={query.q} />}
+            <label className="field-label mb-0" htmlFor="leetcode-sort">Sort</label>
+            <select id="leetcode-sort" name="sort" className="field min-w-48" defaultValue={leetcodeSort}>
+              <option value="problem">Problem number</option>
+              <option value="difficulty">Difficulty</option>
+              <option value="updated">Last modified</option>
+            </select>
+            <button className="button-secondary" type="submit">Apply</button>
+          </form>
+        </section>
+      )}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <form className="flex w-full max-w-md gap-2" action={`/${slug}`}>
           {slug === "tasks" && <input type="hidden" name="sort" value={taskSort} />}
           {slug === "tasks" && showCompleted && <input type="hidden" name="completed" value="1" />}
-          <input className="field" name="q" type="search" defaultValue={query.q || ""} placeholder={`Search ${config.title.toLowerCase()}…`} />
+          {slug === "leetcode" && <input type="hidden" name="sort" value={leetcodeSort} />}
+          <input className="field" name="q" type="search" defaultValue={query.q || ""} placeholder={slug === "leetcode" ? "Search title or #399..." : `Search ${config.title.toLowerCase()}…`} />
           <button className="button-secondary" type="submit">Search</button>
         </form>
         <div className="text-xs font-bold uppercase tracking-wider text-stone-500">{rows.length} {rows.length === 1 ? "record" : "records"}</div>

@@ -200,11 +200,12 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
   const normalizedLanguage = normalizeLanguage(language);
   const lines = normalizedLanguage === "text" ? code.replace(/\r\n/g, "\n").split("\n").map((line) => [{ kind: "plain" as const, text: line }]) : highlightCode(code, normalizedLanguage);
   return (
-    <div className="mt-2 overflow-hidden rounded-xl border border-line bg-[#fbfaf6] shadow-inner">
-      <div className="flex items-center justify-between border-b border-line bg-moss-soft/35 px-4 py-2">
+    <details className="group mt-2 overflow-hidden rounded-xl border border-line bg-[#fbfaf6] shadow-inner" open>
+      <summary className="flex cursor-pointer list-none items-center justify-between border-b border-line bg-moss-soft/35 px-4 py-2 marker:hidden">
         <span className="text-[11px] font-bold uppercase tracking-[.18em] text-stone-500">{LANGUAGE_LABEL[normalizedLanguage]}</span>
-        <span className="text-[11px] text-stone-400">syntax highlighted</span>
-      </div>
+        <span className="text-[11px] text-stone-400 group-open:hidden">expand code</span>
+        <span className="text-[11px] text-stone-400 hidden group-open:inline">collapse code</span>
+      </summary>
       <pre className="overflow-x-auto px-4 py-3 text-xs leading-6">
         <code>
           {lines.map((line, lineIndex) => (
@@ -214,6 +215,6 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
           ))}
         </code>
       </pre>
-    </div>
+    </details>
   );
 }

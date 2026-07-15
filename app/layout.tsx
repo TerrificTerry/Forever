@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "Spirit Archive", template: "%s · Spirit Archive" },
   description: "A private personal intelligence system.",
+  icons: { icon: "/icon.svg" },
   robots: { index: false, follow: false, nocache: true },
 };
 
