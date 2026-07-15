@@ -1,36 +1,82 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
-      <stop offset="0%" stop-color="#3b0505"/>
-      <stop offset="55%" stop-color="#160202"/>
-      <stop offset="100%" stop-color="#050203"/>
+    <radialGradient id="void" cx="50%" cy="45%" r="74%">
+      <stop offset="0%" stop-color="#220204"/>
+      <stop offset="62%" stop-color="#090102"/>
+      <stop offset="100%" stop-color="#000"/>
     </radialGradient>
-    <linearGradient id="fire" x1="0" x2="0" y1="1" y2="0">
-      <stop offset="0%" stop-color="#ff2a05"/>
-      <stop offset="50%" stop-color="#ff7a00"/>
-      <stop offset="100%" stop-color="#ffd36a"/>
+    <linearGradient id="throne" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#ff1b1b"/>
+      <stop offset="38%" stop-color="#9d0509"/>
+      <stop offset="100%" stop-color="#250102"/>
     </linearGradient>
-    <linearGradient id="blood" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#ff1c1c"/>
-      <stop offset="45%" stop-color="#9f0707"/>
-      <stop offset="100%" stop-color="#3d0303"/>
+    <linearGradient id="darkMetal" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2a0204"/>
+      <stop offset="45%" stop-color="#090102"/>
+      <stop offset="100%" stop-color="#5a0307"/>
     </linearGradient>
+    <linearGradient id="bone" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#fff7df"/>
+      <stop offset="55%" stop-color="#d6c29f"/>
+      <stop offset="100%" stop-color="#8a765c"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
-  <path d="M20 102 C16 84 26 79 24 65 C22 50 33 43 35 26 C43 43 36 55 44 70 C53 86 38 92 43 108 Z" fill="url(#fire)" opacity=".88"/>
-  <path d="M108 102 C112 84 102 79 104 65 C106 50 95 43 93 26 C85 43 92 55 84 70 C75 86 90 92 85 108 Z" fill="url(#fire)" opacity=".88"/>
-  <path d="M30 36 L14 19 M98 36 L114 19 M31 52 L9 45 M97 52 L119 45 M36 72 L15 82 M92 72 L113 82" stroke="#e9d6ba" stroke-width="7" stroke-linecap="round" opacity=".9"/>
-  <circle cx="14" cy="19" r="6" fill="#f3e5ca"/>
-  <circle cx="114" cy="19" r="6" fill="#f3e5ca"/>
-  <circle cx="9" cy="45" r="5" fill="#f3e5ca"/>
-  <circle cx="119" cy="45" r="5" fill="#f3e5ca"/>
-  <circle cx="15" cy="82" r="5" fill="#f3e5ca"/>
-  <circle cx="113" cy="82" r="5" fill="#f3e5ca"/>
-  <path d="M39 104 V41 C39 33 45 27 53 27 H75 C83 27 89 33 89 41 V104 Z" fill="#210202" stroke="#5a0808" stroke-width="4"/>
-  <path d="M47 100 V45 C47 39 51 36 56 36 H72 C77 36 81 39 81 45 V100 Z" fill="url(#blood)"/>
-  <path d="M37 60 H91 L84 76 H44 Z" fill="#6c0505" stroke="#c30d0d" stroke-width="3"/>
-  <path d="M45 76 H83 L91 109 H37 Z" fill="#8f0606"/>
-  <path d="M31 107 H97 L103 119 H25 Z" fill="#2a0303" stroke="#c51a12" stroke-width="3"/>
-  <path d="M53 36 L64 14 L75 36 Z" fill="#c30b0b" stroke="#ff4732" stroke-width="3"/>
-  <path d="M50 52 C55 42 61 41 64 31 C67 41 73 42 78 52 C71 49 57 49 50 52 Z" fill="#ff3b16" opacity=".85"/>
+
+  <rect width="128" height="128" rx="24" fill="url(#void)"/>
+
+  <!-- white-bone outer rim -->
+  <path d="M17 21 L31 34 M43 12 L49 30 M64 8 V27 M85 12 L79 30 M111 21 L97 34 M118 45 L99 51 M119 76 L100 72 M104 105 L89 91 M64 120 V98 M24 105 L39 91 M9 76 L28 72 M10 45 L29 51"
+        stroke="url(#bone)" stroke-width="7" stroke-linecap="round"/>
+  <g fill="url(#bone)" stroke="#3b251b" stroke-width="1.2">
+    <circle cx="17" cy="21" r="6"/>
+    <circle cx="43" cy="12" r="5.5"/>
+    <circle cx="64" cy="8" r="6"/>
+    <circle cx="85" cy="12" r="5.5"/>
+    <circle cx="111" cy="21" r="6"/>
+    <circle cx="118" cy="45" r="5"/>
+    <circle cx="119" cy="76" r="5"/>
+    <circle cx="104" cy="105" r="5.5"/>
+    <circle cx="64" cy="120" r="6"/>
+    <circle cx="24" cy="105" r="5.5"/>
+    <circle cx="9" cy="76" r="5"/>
+    <circle cx="10" cy="45" r="5"/>
+  </g>
+
+  <!-- ember halo behind throne -->
+  <path d="M34 103 C25 82 33 66 28 47 C40 58 43 75 53 84 C46 67 51 50 64 31 C77 50 82 67 75 84 C85 75 88 58 100 47 C95 66 103 82 94 103 Z"
+        fill="#ff2a10" opacity=".28" filter="url(#glow)"/>
+
+  <!-- tall throne silhouette -->
+  <path d="M33 112 V46 C33 32 44 23 57 23 H71 C84 23 95 32 95 46 V112 Z"
+        fill="url(#darkMetal)" stroke="#dc1118" stroke-width="4"/>
+  <path d="M45 108 V48 C45 39 52 34 60 34 H68 C76 34 83 39 83 48 V108 Z"
+        fill="url(#throne)" stroke="#420003" stroke-width="3"/>
+  <path d="M50 61 H78 L84 78 H44 Z" fill="#080102" stroke="#c70b12" stroke-width="3"/>
+  <path d="M45 78 H83 L92 112 H36 Z" fill="#7d0307" stroke="#270001" stroke-width="3"/>
+  <path d="M30 111 H98 L106 123 H22 Z" fill="#060101" stroke="#b30b0f" stroke-width="4"/>
+
+  <!-- throne crown and spikes -->
+  <path d="M42 42 L51 19 L59 41 L64 14 L69 41 L77 19 L86 42 Z"
+        fill="#070101" stroke="#f21b22" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M52 48 C56 39 61 37 64 26 C67 37 72 39 76 48 C69 45 59 45 52 48 Z"
+        fill="#ff1018" opacity=".85"/>
+
+  <!-- bone armrests -->
+  <path d="M31 69 L14 64 M97 69 L114 64 M36 87 L19 94 M92 87 L109 94"
+        stroke="url(#bone)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="14" cy="64" r="4.5" fill="url(#bone)"/>
+  <circle cx="114" cy="64" r="4.5" fill="url(#bone)"/>
+  <circle cx="19" cy="94" r="4.5" fill="url(#bone)"/>
+  <circle cx="109" cy="94" r="4.5" fill="url(#bone)"/>
+
+  <!-- blood-red seat highlight -->
+  <path d="M52 79 H76 L81 105 H47 Z" fill="#c5090f" opacity=".7"/>
+  <path d="M58 36 H70 V105 H58 Z" fill="#ff2a2a" opacity=".18"/>
 </svg>
